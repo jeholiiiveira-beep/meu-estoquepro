@@ -2,6 +2,11 @@
   publish = "public"
   functions = "netlify/functions"
 
+[build.environment]
+  ML_CLIENT_ID = "4538292403150286"
+  ML_REDIRECT_URI = "https://meu-estoquepro.netlify.app"
+  SECRETS_SCAN_OMIT_KEYS = "ML_CLIENT_SECRET"
+
 [[headers]]
   for = "/*"
   [headers.values]
