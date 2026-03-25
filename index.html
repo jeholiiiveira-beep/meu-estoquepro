@@ -343,28 +343,69 @@ tbody tr.row-alert td{background:rgba(252,235,235,.18)}
 
 
 /* ===== SIDEBAR RECOLHÍVEL ===== */
-.sidebar{transition:width .25s cubic-bezier(.4,0,.2,1)}
+.sidebar{transition:width .25s cubic-bezier(.4,0,.2,1);overflow:hidden}
 .sidebar.collapsed{width:56px}
-.sidebar.collapsed .brand em,
+
+/* Collapsed: hide text labels, section titles, brand text */
 .sidebar.collapsed .nav-label,
-.sidebar.collapsed .nav-section{display:none}
-.sidebar.collapsed .nav-item{padding:8px;justify-content:center;margin:1px 4px}
-.sidebar.collapsed .nav-item svg{width:18px;height:18px;opacity:.7}
-.sidebar.collapsed .sidebar-logo{padding:.9rem;justify-content:center}
-.sidebar.collapsed .brand{font-size:0}
-.sidebar-toggle{display:flex;align-items:center;justify-content:center;width:28px;height:28px;border-radius:6px;border:1px solid var(--bdr);background:var(--bg-p);cursor:pointer;transition:all .15s;flex-shrink:0}
+.sidebar.collapsed .nav-section,
+.sidebar.collapsed .brand em,
+.sidebar.collapsed .brand-text{
+  display:none;
+}
+
+/* Collapsed: brand area */
+.sidebar.collapsed .brand{font-size:14px;letter-spacing:0}
+
+/* Collapsed: nav items — centered icons only */
+.sidebar.collapsed .nav-item{
+  padding:10px 0;
+  justify-content:center;
+  margin:2px 6px;
+  border-radius:8px;
+  border-left:none;
+}
+.sidebar.collapsed .nav-item.active{
+  border-left:none;
+  border-radius:8px;
+}
+/* Icons always visible */
+.sidebar.collapsed .nav-item svg{
+  width:20px;
+  height:20px;
+  opacity:.75;
+  flex-shrink:0;
+}
+.sidebar.collapsed .nav-item:hover svg,
+.sidebar.collapsed .nav-item.active svg{opacity:1}
+
+/* Logo area collapsed */
+.sidebar.collapsed .sidebar-logo{
+  padding:.75rem 0;
+  justify-content:center;
+}
+
+/* Toggle button */
+.sidebar-toggle{
+  display:flex;align-items:center;justify-content:center;
+  width:26px;height:26px;border-radius:6px;
+  border:1px solid var(--bdr);background:var(--bg-p);
+  cursor:pointer;transition:all .15s;flex-shrink:0;
+}
 .sidebar-toggle:hover{background:var(--bg-s);border-color:var(--bdr-m)}
-.sidebar-toggle svg{width:14px;height:14px;color:var(--txt-s);transition:transform .25s}
+.sidebar-toggle svg{width:13px;height:13px;color:var(--txt-s);transition:transform .25s}
 .sidebar.collapsed .sidebar-toggle svg{transform:rotate(180deg)}
+
+/* Main content transition */
 .main{transition:margin-left .25s cubic-bezier(.4,0,.2,1)}
 .main.expanded{margin-left:56px}
 
-/* Tooltip on collapsed nav items */
+/* Tooltip on hover when collapsed */
 .sidebar.collapsed .nav-item{position:relative}
 .sidebar.collapsed .nav-item:hover::after{
   content:attr(data-label);
   position:absolute;
-  left:52px;
+  left:calc(100% + 8px);
   top:50%;
   transform:translateY(-50%);
   background:#1a1a18;
@@ -373,9 +414,10 @@ tbody tr.row-alert td{background:rgba(252,235,235,.18)}
   border-radius:6px;
   font-size:12px;
   white-space:nowrap;
-  z-index:100;
+  z-index:200;
   pointer-events:none;
   font-weight:500;
+  box-shadow:0 2px 8px rgba(0,0,0,.2);
 }
 
 </style>
@@ -392,34 +434,34 @@ tbody tr.row-alert td{background:rgba(252,235,235,.18)}
     </div>
     <div class="nav-section">Menu</div>
     <div class="nav-item active" onclick="showPage('dashboard',this)" data-label="Dashboard">
-      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="1" y="1" width="6" height="6" rx="1"/><rect x="9" y="1" width="6" height="6" rx="1"/><rect x="1" y="9" width="6" height="6" rx="1"/><rect x="9" y="9" width="6" height="6" rx="1"/></svg>Dashboard
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="1" y="1" width="6" height="6" rx="1"/><rect x="9" y="1" width="6" height="6" rx="1"/><rect x="1" y="9" width="6" height="6" rx="1"/><rect x="9" y="9" width="6" height="6" rx="1"/></svg><span class="nav-label">Dashboard</span>
     </div>
     <div class="nav-item" onclick="showPage('produtos',this)" data-label="Produtos">
-      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 4h12M4 4V2h8v2M3 4l1 10h8l1-10"/></svg>Produtos
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 4h12M4 4V2h8v2M3 4l1 10h8l1-10"/></svg><span class="nav-label">Produtos</span>
     </div>
     <div class="nav-item" onclick="showPage('estoque',this)" data-label="Atualizar Estoque">
-      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M8 2v8M5 7l3 3 3-3M2 12v1a1 1 0 001 1h10a1 1 0 001-1v-1"/></svg>Atualizar Estoque
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M8 2v8M5 7l3 3 3-3M2 12v1a1 1 0 001 1h10a1 1 0 001-1v-1"/></svg><span class="nav-label">Atualizar Estoque</span>
     </div>
     <div class="nav-item" onclick="showPage('financeiro',this)" data-label="Estoque Financeiro">
-      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="1" y="4" width="14" height="9" rx="1"/><path d="M1 7h14M5 4V2M11 4V2"/></svg>Estoque Financeiro
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="1" y="4" width="14" height="9" rx="1"/><path d="M1 7h14M5 4V2M11 4V2"/></svg><span class="nav-label">Estoque Financeiro</span>
     </div>
     <div class="nav-item" onclick="showPage('compras',this)" data-label="Necessidade de Compra">
-      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M1 2h2l2 8h7l2-6H5"/><circle cx="7" cy="13" r="1"/><circle cx="12" cy="13" r="1"/></svg>Necessidade de Compra
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M1 2h2l2 8h7l2-6H5"/><circle cx="7" cy="13" r="1"/><circle cx="12" cy="13" r="1"/></svg><span class="nav-label">Necessidade de Compra</span>
     </div>
     <div class="nav-item" onclick="showPage('abc',this)" data-label="Curva ABC">
-      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 12l3-8 3 5 2-3 3 6"/></svg>Curva ABC
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 12l3-8 3 5 2-3 3 6"/></svg><span class="nav-label">Curva ABC</span>
     </div>
     <div class="nav-item" onclick="showPage('ruptura',this)" data-label="Previsão de Ruptura">
-      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="8" r="6"/><path d="M8 5v3.5l2 2"/></svg>Previsão de Ruptura
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="8" r="6"/><path d="M8 5v3.5l2 2"/></svg><span class="nav-label">Previsão de Ruptura</span>
     </div>
     <div class="nav-item" onclick="showPage('planilhas',this)" data-label="Enviar Planilhas">
-      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="1" y="1" width="14" height="14" rx="1.5"/><path d="M1 5h14M5 5v10M5 8h9M5 11h9"/></svg>Enviar Planilhas
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="1" y="1" width="14" height="14" rx="1.5"/><path d="M1 5h14M5 5v10M5 8h9M5 11h9"/></svg><span class="nav-label">Enviar Planilhas</span>
     </div>
     <div class="nav-item" onclick="showPage('mercadolivre',this)" id="nav-ml" data-label="Mercado Livre">
-      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M8 1a7 7 0 100 14A7 7 0 008 1z"/><path d="M5 8l2 2 4-4"/></svg>Mercado Livre
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M8 1a7 7 0 100 14A7 7 0 008 1z"/><path d="M5 8l2 2 4-4"/></svg><span class="nav-label">Mercado Livre</span>
     </div>
     <div class="nav-item" onclick="showPage('config',this)" data-label="Configurações">
-      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="8" r="2.5"/><path d="M8 1v2M8 13v2M1 8h2M13 8h2M3.05 3.05l1.41 1.41M11.54 11.54l1.41 1.41M3.05 12.95l1.41-1.41M11.54 4.46l1.41-1.41"/></svg>Configurações
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="8" r="2.5"/><path d="M8 1v2M8 13v2M1 8h2M13 8h2M3.05 3.05l1.41 1.41M11.54 11.54l1.41 1.41M3.05 12.95l1.41-1.41M11.54 4.46l1.41-1.41"/></svg><span class="nav-label">Configurações</span>
     </div>
   </div>
 
@@ -1485,7 +1527,7 @@ async function mlSync(){
     for(var i=0;i<allItemIds.length;i+=20){
       var batch=allItemIds.slice(i,i+20);
       var resp=await mlFetch(
-        'https://api.mercadolibre.com/items?ids='+batch.join(',')+'&attributes=id,title,seller_sku,available_quantity,price,thumbnail,category_id,attributes'
+        'https://api.mercadolibre.com/items?ids='+batch.join(',')+'&attributes=id,title,seller_sku,available_quantity,price,thumbnail,category_id,attributes,variations'
       );
       resp.forEach(function(r){if(r.code===200)itemsData.push(r.body);});
       mlProgress(30+Math.round((i/allItemIds.length)*30));
@@ -1531,10 +1573,18 @@ async function mlSync(){
     var updatedCount=0;
 
     itemsData.forEach(function(item){
-      // Prefer seller_sku (cadastrado no ML), fallback to item ID
-      var sku = (item.seller_sku && item.seller_sku.trim() !== '')
-        ? item.seller_sku.trim()
-        : item.id;
+      // Get SKU: check seller_sku field first, then attributes array, then item ID
+      var sku = item.id; // default fallback
+      if(item.seller_sku && item.seller_sku.trim() !== ''){
+        sku = item.seller_sku.trim();
+      } else if(item.attributes && Array.isArray(item.attributes)){
+        var skuAttr = item.attributes.find(function(a){
+          return a.id === 'SELLER_SKU' || a.id === 'SKU';
+        });
+        if(skuAttr && skuAttr.value_name && skuAttr.value_name.trim() !== ''){
+          sku = skuAttr.value_name.trim();
+        }
+      }
       var name=item.title;
       var stock=item.available_quantity||0;
       var price=item.price||0;
