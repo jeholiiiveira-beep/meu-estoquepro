@@ -341,36 +341,84 @@ tbody tr.row-alert td{background:rgba(252,235,235,.18)}
 .ml-progress-bar{height:6px;background:var(--bg-s);border-radius:3px;overflow:hidden;margin-top:8px}
 .ml-progress-fill{height:100%;background:#FFE600;border-radius:3px;transition:width .3s}
 
+
+/* ===== SIDEBAR RECOLHÍVEL ===== */
+.sidebar{transition:width .25s cubic-bezier(.4,0,.2,1)}
+.sidebar.collapsed{width:56px}
+.sidebar.collapsed .brand em,
+.sidebar.collapsed .nav-label,
+.sidebar.collapsed .nav-section{display:none}
+.sidebar.collapsed .nav-item{padding:8px;justify-content:center;margin:1px 4px}
+.sidebar.collapsed .nav-item svg{width:18px;height:18px;opacity:.7}
+.sidebar.collapsed .sidebar-logo{padding:.9rem;justify-content:center}
+.sidebar.collapsed .brand{font-size:0}
+.sidebar-toggle{display:flex;align-items:center;justify-content:center;width:28px;height:28px;border-radius:6px;border:1px solid var(--bdr);background:var(--bg-p);cursor:pointer;transition:all .15s;flex-shrink:0}
+.sidebar-toggle:hover{background:var(--bg-s);border-color:var(--bdr-m)}
+.sidebar-toggle svg{width:14px;height:14px;color:var(--txt-s);transition:transform .25s}
+.sidebar.collapsed .sidebar-toggle svg{transform:rotate(180deg)}
+.main{transition:margin-left .25s cubic-bezier(.4,0,.2,1)}
+.main.expanded{margin-left:56px}
+
+/* Tooltip on collapsed nav items */
+.sidebar.collapsed .nav-item{position:relative}
+.sidebar.collapsed .nav-item:hover::after{
+  content:attr(data-label);
+  position:absolute;
+  left:52px;
+  top:50%;
+  transform:translateY(-50%);
+  background:#1a1a18;
+  color:#f5f5f2;
+  padding:5px 10px;
+  border-radius:6px;
+  font-size:12px;
+  white-space:nowrap;
+  z-index:100;
+  pointer-events:none;
+  font-weight:500;
+}
+
 </style>
 </head>
 <body>
 
 <div class="shell">
   <div class="sidebar">
-    <div class="sidebar-logo"><div class="brand">estoque<em>pro</em></div></div>
+    <div class="sidebar-logo" style="display:flex;align-items:center;justify-content:space-between">
+      <div class="brand">estoque<em>pro</em></div>
+      <div class="sidebar-toggle" onclick="toggleSidebar()" title="Recolher menu">
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M10 3L6 8l4 5"/></svg>
+      </div>
+    </div>
     <div class="nav-section">Menu</div>
-    <div class="nav-item active" onclick="showPage('dashboard',this)">
+    <div class="nav-item active" onclick="showPage('dashboard',this)" data-label="Dashboard">
       <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="1" y="1" width="6" height="6" rx="1"/><rect x="9" y="1" width="6" height="6" rx="1"/><rect x="1" y="9" width="6" height="6" rx="1"/><rect x="9" y="9" width="6" height="6" rx="1"/></svg>Dashboard
     </div>
-    <div class="nav-item" onclick="showPage('produtos',this)">
+    <div class="nav-item" onclick="showPage('produtos',this)" data-label="Produtos">
       <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 4h12M4 4V2h8v2M3 4l1 10h8l1-10"/></svg>Produtos
     </div>
-    <div class="nav-item" onclick="showPage('estoque',this)">
+    <div class="nav-item" onclick="showPage('estoque',this)" data-label="Atualizar Estoque">
       <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M8 2v8M5 7l3 3 3-3M2 12v1a1 1 0 001 1h10a1 1 0 001-1v-1"/></svg>Atualizar Estoque
     </div>
-    <div class="nav-item" onclick="showPage('financeiro',this)">
+    <div class="nav-item" onclick="showPage('financeiro',this)" data-label="Estoque Financeiro">
       <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="1" y="4" width="14" height="9" rx="1"/><path d="M1 7h14M5 4V2M11 4V2"/></svg>Estoque Financeiro
     </div>
-    <div class="nav-item" onclick="showPage('compras',this)">
+    <div class="nav-item" onclick="showPage('compras',this)" data-label="Necessidade de Compra">
       <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M1 2h2l2 8h7l2-6H5"/><circle cx="7" cy="13" r="1"/><circle cx="12" cy="13" r="1"/></svg>Necessidade de Compra
     </div>
-    <div class="nav-item" onclick="showPage('planilhas',this)">
+    <div class="nav-item" onclick="showPage('abc',this)" data-label="Curva ABC">
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 12l3-8 3 5 2-3 3 6"/></svg>Curva ABC
+    </div>
+    <div class="nav-item" onclick="showPage('ruptura',this)" data-label="Previsão de Ruptura">
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="8" r="6"/><path d="M8 5v3.5l2 2"/></svg>Previsão de Ruptura
+    </div>
+    <div class="nav-item" onclick="showPage('planilhas',this)" data-label="Enviar Planilhas">
       <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="1" y="1" width="14" height="14" rx="1.5"/><path d="M1 5h14M5 5v10M5 8h9M5 11h9"/></svg>Enviar Planilhas
     </div>
-    <div class="nav-item" onclick="showPage('mercadolivre',this)" id="nav-ml">
+    <div class="nav-item" onclick="showPage('mercadolivre',this)" id="nav-ml" data-label="Mercado Livre">
       <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M8 1a7 7 0 100 14A7 7 0 008 1z"/><path d="M5 8l2 2 4-4"/></svg>Mercado Livre
     </div>
-    <div class="nav-item" onclick="showPage('config',this)">
+    <div class="nav-item" onclick="showPage('config',this)" data-label="Configurações">
       <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="8" r="2.5"/><path d="M8 1v2M8 13v2M1 8h2M13 8h2M3.05 3.05l1.41 1.41M11.54 11.54l1.41 1.41M3.05 12.95l1.41-1.41M11.54 4.46l1.41-1.41"/></svg>Configurações
     </div>
   </div>
@@ -1437,7 +1485,7 @@ async function mlSync(){
     for(var i=0;i<allItemIds.length;i+=20){
       var batch=allItemIds.slice(i,i+20);
       var resp=await mlFetch(
-        'https://api.mercadolibre.com/items?ids='+batch.join(',')+'&attributes=id,title,seller_sku,available_quantity,price,thumbnail,category_id'
+        'https://api.mercadolibre.com/items?ids='+batch.join(',')+'&attributes=id,title,seller_sku,available_quantity,price,thumbnail,category_id,attributes'
       );
       resp.forEach(function(r){if(r.code===200)itemsData.push(r.body);});
       mlProgress(30+Math.round((i/allItemIds.length)*30));
@@ -1483,7 +1531,10 @@ async function mlSync(){
     var updatedCount=0;
 
     itemsData.forEach(function(item){
-      var sku=item.seller_sku||item.id;
+      // Prefer seller_sku (cadastrado no ML), fallback to item ID
+      var sku = (item.seller_sku && item.seller_sku.trim() !== '')
+        ? item.seller_sku.trim()
+        : item.id;
       var name=item.title;
       var stock=item.available_quantity||0;
       var price=item.price||0;
@@ -1603,6 +1654,26 @@ function mlInit(){
     document.getElementById('mlStatusBar').style.display='flex';
   }
 }
+
+
+/* ===== SIDEBAR TOGGLE ===== */
+function toggleSidebar(){
+  var sb=document.querySelector('.sidebar');
+  var main=document.querySelector('.main');
+  var isCollapsed=sb.classList.toggle('collapsed');
+  main.classList.toggle('expanded', isCollapsed);
+  localStorage.setItem('sidebarCollapsed', isCollapsed?'1':'0');
+}
+
+// Restore sidebar state on load
+(function(){
+  if(localStorage.getItem('sidebarCollapsed')==='1'){
+    var sb=document.querySelector('.sidebar');
+    var main=document.querySelector('.main');
+    if(sb){sb.classList.add('collapsed');}
+    if(main){main.classList.add('expanded');}
+  }
+})();
 
 // INIT
 populateCats();renderStatCards();renderTable();
