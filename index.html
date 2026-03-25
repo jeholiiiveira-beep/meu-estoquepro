@@ -1296,10 +1296,10 @@ async function mlHandleRedirect(){
       redirect_uri:ML_REDIRECT
     });
 
-    var resp=await fetch('https://api.mercadolibre.com/oauth/token',{
+    var resp=await fetch('/.netlify/functions/ml-token',{
       method:'POST',
-      headers:{'Content-Type':'application/x-www-form-urlencoded','Accept':'application/json'},
-      body:body.toString()
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({grant_type:'authorization_code',code:code})
     });
 
     if(!resp.ok){
@@ -1308,13 +1308,13 @@ async function mlHandleRedirect(){
     }
 
     var data=await resp.json();
+    if(data.error)throw new Error(data.error);
     mlLog('Token obtido com sucesso! ✓','ok');
 
     // Get user info
-    var userResp=await fetch('https://api.mercadolibre.com/users/me',{
-      headers:{'Authorization':'Bearer '+data.access_token}
-    });
+    var userResp=await fetch('/.netlify/functions/ml-proxy?token='+encodeURIComponent(data.access_token)+'&path='+encodeURIComponent('/users/me'));
     var user=await userResp.json();
+    if(!user.id)throw new Error('Não foi possível identificar o usuário ML.');
 
     mlSetTokens(data.access_token,data.refresh_token,String(user.id),user.nickname);
     mlLog('Usuário identificado: '+user.nickname,'ok');
@@ -1342,13 +1342,14 @@ async function mlRefreshToken(){
     client_secret:ML_SECRET,
     refresh_token:refresh
   });
-  var resp=await fetch('https://api.mercadolibre.com/oauth/token',{
+  var resp=await fetch('/.netlify/functions/ml-token',{
     method:'POST',
-    headers:{'Content-Type':'application/x-www-form-urlencoded'},
-    body:body.toString()
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({grant_type:'refresh_token',refresh_token:refresh})
   });
   if(!resp.ok)throw new Error('Falha ao renovar token.');
   var data=await resp.json();
+  if(data.error)throw new Error('Refresh falhou: '+data.error);
   mlSetTokens(data.access_token,data.refresh_token);
   return data.access_token;
 }
@@ -1357,13 +1358,23 @@ async function mlRefreshToken(){
 async function mlFetch(url){
   var token=mlGetToken();
   if(!token)throw new Error('Não autenticado.');
-  var resp=await fetch(url,{headers:{'Authorization':'Bearer '+token}});
+
+  // Extract path from full ML URL to send through proxy
+  var mlPath=url.replace('https://api.mercadolibre.com','');
+
+  var proxyUrl='/.netlify/functions/ml-proxy?token='+encodeURIComponent(token)+'&path='+encodeURIComponent(mlPath);
+  var resp=await fetch(proxyUrl);
+
   if(resp.status===401){
     mlLog('Token expirado, renovando…','info');
     token=await mlRefreshToken();
-    resp=await fetch(url,{headers:{'Authorization':'Bearer '+token}});
+    proxyUrl='/.netlify/functions/ml-proxy?token='+encodeURIComponent(token)+'&path='+encodeURIComponent(mlPath);
+    resp=await fetch(proxyUrl);
   }
-  if(!resp.ok)throw new Error('API error '+resp.status+' on '+url);
+  if(!resp.ok){
+    var errData=await resp.json().catch(()=>({}));
+    throw new Error('API error '+resp.status+': '+(errData.error||errData.message||url));
+  }
   return resp.json();
 }
 
