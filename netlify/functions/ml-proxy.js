@@ -9,33 +9,43 @@ exports.handler = async function(event, context) {
     "Content-Type": "application/json"
   };
 
-  // Preflight
   if (event.httpMethod === "OPTIONS") {
     return { statusCode: 200, headers, body: "" };
   }
 
   try {
     const params = event.queryStringParameters || {};
-    const mlPath  = params.path;   // ex: /users/123/items/search?status=active
-    const token   = params.token;  // access_token do usuário
+    const mlPath  = params.path;
+    const token   = params.token;
 
     if (!mlPath || !token) {
       return {
-        statusCode: 400,
+        statusCode: 200,
         headers,
-        body: JSON.stringify({ error: "Parâmetros 'path' e 'token' são obrigatórios." })
+        body: JSON.stringify({ _status: 400, error: "Parâmetros 'path' e 'token' são obrigatórios." })
       };
     }
 
     const url = "https://api.mercadolibre.com" + mlPath;
+
     const resp = await fetch(url, {
-      headers: { "Authorization": "Bearer " + token }
+      headers: {
+        "Authorization": "Bearer " + token,
+        "Accept": "application/json"
+      }
     });
 
-    const data = await resp.json();
+    let data;
+    const text = await resp.text();
+    try { data = JSON.parse(text); } catch(e) { data = { error: text }; }
+
+    // Inject HTTP status so client can handle errors without fetch() throwing
+    if (typeof data === 'object' && data !== null) {
+      data._status = resp.status;
+    }
 
     return {
-      statusCode: resp.status,
+      statusCode: 200, // always 200 — error detection via _status field
       headers,
       body: JSON.stringify(data)
     };
@@ -43,9 +53,9 @@ exports.handler = async function(event, context) {
   } catch (err) {
     console.error("ml-proxy error:", err);
     return {
-      statusCode: 500,
+      statusCode: 200,
       headers,
-      body: JSON.stringify({ error: err.message })
+      body: JSON.stringify({ _status: 500, error: err.message })
     };
   }
 };
