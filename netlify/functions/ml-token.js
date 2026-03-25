@@ -3,7 +3,7 @@
 // Roda no servidor (Netlify) — evita bloqueio CORS do navegador
 
 const ML_APP_ID   = "4538292403150286";
-const ML_SECRET   = "sPjaQdPEUONOXFdIgKgzEHTtbFSNkpkY";
+const ML_SECRET   = process.env.ML_CLIENT_SECRET;
 const ML_REDIRECT = "https://meu-estoquepro.netlify.app";
 
 exports.handler = async function(event, context) {
