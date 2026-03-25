@@ -1357,31 +1357,50 @@ async function mlRefreshToken(){
 // ── ML API fetch with auto-retry on 401 ──────────────────────
 async function mlFetch(url){
   var token=mlGetToken();
-  if(!token)throw new Error('Não autenticado.');
+  if(!token)throw new Error('Não autenticado. Conecte o Mercado Livre novamente.');
 
-  // Extract path from full ML URL to send through proxy
-  var mlPath=url.replace('https://api.mercadolibre.com','');
+  var data=await mlCallProxy(url,token);
 
-  var proxyUrl='/.netlify/functions/ml-proxy?token='+encodeURIComponent(token)+'&path='+encodeURIComponent(mlPath);
-  var resp=await fetch(proxyUrl);
-
-  if(resp.status===401){
+  // Auto-refresh on 401
+  if(data && data._status===401){
     mlLog('Token expirado, renovando…','info');
     token=await mlRefreshToken();
-    proxyUrl='/.netlify/functions/ml-proxy?token='+encodeURIComponent(token)+'&path='+encodeURIComponent(mlPath);
-    resp=await fetch(proxyUrl);
+    data=await mlCallProxy(url,token);
   }
-  if(!resp.ok){
-    var errData=await resp.json().catch(()=>({}));
-    throw new Error('API error '+resp.status+': '+(errData.error||errData.message||url));
+
+  if(data && data._status && data._status>=400){
+    throw new Error('API error '+data._status+': '+(data.error||data.message||url));
   }
-  return resp.json();
+  // Remove internal _status field before returning clean ML data
+  if(data && typeof data._status!=='undefined') delete data._status;
+  return data;
+}
+
+async function mlCallProxy(url,token){
+  var mlPath=url.replace('https://api.mercadolibre.com','');
+  var proxyUrl='/.netlify/functions/ml-proxy?token='+encodeURIComponent(token)+'&path='+encodeURIComponent(mlPath);
+  var resp=await fetch(proxyUrl);
+  if(!resp.ok) return {_status:resp.status,error:'Proxy HTTP '+resp.status};
+  var body=await resp.json().catch(function(){return{_status:500,error:'Invalid JSON from proxy'};});
+  return body;
 }
 
 // ── Main sync ─────────────────────────────────────────────────
 async function mlSync(){
   var userId=mlGetUserId();
   if(!userId){showToast('Conecte ao Mercado Livre primeiro.');return;}
+
+  // Pre-check: try to refresh token before starting
+  try{
+    var testResp=await mlCallProxy('https://api.mercadolibre.com/users/me',mlGetToken());
+    if(testResp._status===401){
+      mlLog('Token expirado, renovando antes de sincronizar…','info');
+      await mlRefreshToken();
+      userId=mlGetUserId();
+    }
+  }catch(e){
+    mlLog('Aviso: não foi possível verificar token: '+e.message,'info');
+  }
 
   mlLog('Iniciando sincronismo…','info');
   mlSetStatus('Sincronizando…','Buscando produtos…','loading');
