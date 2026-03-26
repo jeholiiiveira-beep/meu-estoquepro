@@ -1566,11 +1566,55 @@ async function mlSync(){
     for(var i=0;i<allItemIds.length;i+=20){
       var batch=allItemIds.slice(i,i+20);
       var resp=await mlFetch(
-        'https://api.mercadolibre.com/items?ids='+batch.join(',')+'&attributes=id,title,seller_sku,available_quantity,price,thumbnail,category_id,attributes,variations,seller_custom_field'
+        'https://api.mercadolibre.com/items?ids='+batch.join(',')+'&attributes=id,title,seller_sku,seller_custom_field,available_quantity,price,thumbnail,category_id,attributes,variations'
       );
       resp.forEach(function(r){if(r.code===200)itemsData.push(r.body);});
       mlProgress(30+Math.round((i/allItemIds.length)*30));
     }
+
+    // ── 2b. Buscar variações completas para extrair SELLER_SKU ──────
+    mlLog('Buscando SKUs das variações…','info');
+    var variationsMap={};
+    // Busca variações apenas dos itens que têm variações
+    var itemsWithVariations=itemsData.filter(function(item){
+      return item.variations && item.variations.length>0;
+    });
+    mlLog(itemsWithVariations.length+' produto(s) com variações encontrados.','info');
+
+    for(var vi=0;vi<itemsWithVariations.length;vi+=5){
+      var vBatch=itemsWithVariations.slice(vi,vi+5);
+      await Promise.all(vBatch.map(async function(item){
+        try{
+          var vData=await mlFetch('https://api.mercadolibre.com/items/'+item.id+'?attributes=id,seller_sku,seller_custom_field,variations');
+          if(vData && vData.variations && vData.variations.length>0){
+            // Pega o SKU da primeira variação (ou da variação com mais estoque)
+            var bestVar=vData.variations.reduce(function(best,v){
+              return (v.available_quantity||0)>(best.available_quantity||0)?v:best;
+            },vData.variations[0]);
+
+            // Procura SELLER_SKU no atributo da variação
+            var varSku='';
+            if(bestVar.attributes){
+              var skuA=bestVar.attributes.find(function(a){
+                return a.id==='SELLER_SKU'||a.id==='SKU';
+              });
+              if(skuA && skuA.value_name) varSku=skuA.value_name;
+            }
+            // Fallback: seller_custom_field da variação
+            if(!varSku && bestVar.seller_custom_field) varSku=bestVar.seller_custom_field;
+            // Fallback: seller_sku do item raiz
+            if(!varSku && vData.seller_sku) varSku=vData.seller_sku;
+            // Fallback: seller_custom_field do item raiz
+            if(!varSku && vData.seller_custom_field) varSku=vData.seller_custom_field;
+
+            if(varSku) variationsMap[item.id]=varSku;
+          }
+        }catch(e){
+          console.warn('Erro ao buscar variações de '+item.id,e);
+        }
+      }));
+    }
+    mlLog('SKUs de variações carregados: '+Object.keys(variationsMap).length,'ok');
 
     mlLog('Detalhes carregados para '+itemsData.length+' produtos.','ok');
     mlProgress(60);
@@ -1615,35 +1659,25 @@ async function mlSync(){
       // Get SKU: check multiple sources in order of priority
       var sku = item.id; // default fallback
 
-      // 1. seller_sku field (top level)
-      if(item.seller_sku && String(item.seller_sku).trim() !== ''){
+      // 1. variationsMap — SKU buscado diretamente das variações (mais confiável)
+      if(variationsMap[item.id]){
+        sku = String(variationsMap[item.id]).trim();
+
+      // 2. seller_sku field (top level)
+      } else if(item.seller_sku && String(item.seller_sku).trim() !== ''){
         sku = String(item.seller_sku).trim();
 
-      // 2. seller_custom_field (used by some ML sellers)
+      // 3. seller_custom_field
       } else if(item.seller_custom_field && String(item.seller_custom_field).trim() !== ''){
         sku = String(item.seller_custom_field).trim();
 
-      // 3. attributes array — look for SELLER_SKU attribute
+      // 4. attributes array
       } else if(item.attributes && Array.isArray(item.attributes)){
         var skuAttr = item.attributes.find(function(a){
-          return a.id === 'SELLER_SKU' || a.id === 'SKU' || a.name === 'SKU';
+          return a.id === 'SELLER_SKU' || a.id === 'SKU';
         });
         if(skuAttr && skuAttr.value_name && String(skuAttr.value_name).trim() !== ''){
           sku = String(skuAttr.value_name).trim();
-        }
-
-      // 4. variations[0].seller_custom_field (products with variations)
-      } else if(item.variations && Array.isArray(item.variations) && item.variations.length > 0){
-        var v0 = item.variations[0];
-        if(v0.seller_custom_field && String(v0.seller_custom_field).trim() !== ''){
-          sku = String(v0.seller_custom_field).trim();
-        } else if(v0.attributes && Array.isArray(v0.attributes)){
-          var vSkuAttr = v0.attributes.find(function(a){
-            return a.id === 'SELLER_SKU' || a.id === 'SKU';
-          });
-          if(vSkuAttr && vSkuAttr.value_name){
-            sku = String(vSkuAttr.value_name).trim();
-          }
         }
       }
       var name=item.title;
