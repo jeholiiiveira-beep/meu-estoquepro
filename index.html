@@ -384,6 +384,12 @@ tbody tr.row-alert td{background:rgba(252,235,235,.18)}
   padding:.75rem 0;
   justify-content:center;
 }
+/* Ensure toggle button stays visible and clickable when collapsed */
+.sidebar.collapsed .sidebar-toggle{
+  width:32px;
+  height:32px;
+  flex-shrink:0;
+}
 
 /* Toggle button */
 .sidebar-toggle{
@@ -394,7 +400,7 @@ tbody tr.row-alert td{background:rgba(252,235,235,.18)}
 }
 .sidebar-toggle:hover{background:var(--bg-s);border-color:var(--bdr-m)}
 .sidebar-toggle svg{width:13px;height:13px;color:var(--txt-s);transition:transform .25s}
-.sidebar.collapsed .sidebar-toggle svg{transform:rotate(180deg)}
+/* arrow rotation handled by JS */
 
 /* Main content transition */
 .main{transition:margin-left .25s cubic-bezier(.4,0,.2,1)}
@@ -420,17 +426,42 @@ tbody tr.row-alert td{background:rgba(252,235,235,.18)}
   box-shadow:0 2px 8px rgba(0,0,0,.2);
 }
 
+
+/* Floating expand button when sidebar is fully collapsed */
+.sidebar.collapsed::after{
+  content:'›';
+  position:fixed;
+  left:40px;
+  top:50%;
+  transform:translateY(-50%);
+  width:20px;
+  height:48px;
+  background:var(--bg-p);
+  border:1px solid var(--bdr);
+  border-left:none;
+  border-radius:0 8px 8px 0;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-size:16px;
+  color:var(--txt-s);
+  cursor:pointer;
+  z-index:15;
+  line-height:1;
+  padding-left:2px;
+}
+
 </style>
 </head>
 <body>
 
 <div class="shell">
   <div class="sidebar">
-    <div class="sidebar-logo" style="display:flex;align-items:center;justify-content:space-between">
-      <div class="brand">estoque<em>pro</em></div>
-      <div class="sidebar-toggle" onclick="toggleSidebar()" title="Recolher menu">
-        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M10 3L6 8l4 5"/></svg>
-      </div>
+    <div class="sidebar-logo" style="display:flex;align-items:center;justify-content:space-between;gap:8px">
+      <div class="brand" style="white-space:nowrap;overflow:hidden">estoque<em>pro</em></div>
+      <button class="sidebar-toggle" onclick="toggleSidebar()" title="Recolher menu" id="sidebarToggleBtn" style="border:none;background:var(--bg-s);cursor:pointer;border-radius:6px;display:flex;align-items:center;justify-content:center;width:28px;height:28px;flex-shrink:0;padding:0">
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" style="width:13px;height:13px;color:var(--txt-s);transition:transform .25s;pointer-events:none" id="toggleArrow"><path d="M10 3L6 8l4 5"/></svg>
+      </button>
     </div>
     <div class="nav-section">Menu</div>
     <div class="nav-item active" onclick="showPage('dashboard',this)" data-label="Dashboard">
@@ -1298,7 +1329,7 @@ function showToast(msg){
 /* ===== MERCADO LIVRE INTEGRATION ===== */
 const ML_APP_ID   = "4538292403150286";
 const ML_SECRET   = null; // secret kept server-side only
-const ML_REDIRECT = "https://meu-estoquepro.netlify.app";
+const ML_REDIRECT = "https://meu-estoquepro.pages.dev";
 const ML_AUTH_URL = "https://auth.mercadolivre.com.br/authorization?response_type=code&client_id=" + ML_APP_ID + "&redirect_uri=" + encodeURIComponent(ML_REDIRECT);
 
 // Token management (stored in localStorage for persistence)
@@ -1386,7 +1417,7 @@ async function mlHandleRedirect(){
       redirect_uri:ML_REDIRECT
     });
 
-    var resp=await fetch('/.netlify/functions/ml-token',{
+    var resp=await fetch('/ml-token',{
       method:'POST',
       headers:{'Content-Type':'application/json'},
       body:JSON.stringify({grant_type:'authorization_code',code:code})
@@ -1402,7 +1433,7 @@ async function mlHandleRedirect(){
     mlLog('Token obtido com sucesso! ✓','ok');
 
     // Get user info
-    var userResp=await fetch('/.netlify/functions/ml-proxy?token='+encodeURIComponent(data.access_token)+'&path='+encodeURIComponent('/users/me'));
+    var userResp=await fetch('/ml-proxy?token='+encodeURIComponent(data.access_token)+'&path='+encodeURIComponent('/users/me'));
     var user=await userResp.json();
     if(!user.id)throw new Error('Não foi possível identificar o usuário ML.');
 
@@ -1432,7 +1463,7 @@ async function mlRefreshToken(){
     client_secret:ML_SECRET,
     refresh_token:refresh
   });
-  var resp=await fetch('/.netlify/functions/ml-token',{
+  var resp=await fetch('/ml-token',{
     method:'POST',
     headers:{'Content-Type':'application/json'},
     body:JSON.stringify({grant_type:'refresh_token',refresh_token:refresh})
@@ -1468,7 +1499,7 @@ async function mlFetch(url){
 
 async function mlCallProxy(url,token){
   var mlPath=url.replace('https://api.mercadolibre.com','');
-  var proxyUrl='/.netlify/functions/ml-proxy?token='+encodeURIComponent(token)+'&path='+encodeURIComponent(mlPath);
+  var proxyUrl='/ml-proxy?token='+encodeURIComponent(token)+'&path='+encodeURIComponent(mlPath);
   var resp=await fetch(proxyUrl);
   if(!resp.ok) return {_status:resp.status,error:'Proxy HTTP '+resp.status};
   var body=await resp.json().catch(function(){return{_status:500,error:'Invalid JSON from proxy'};});
@@ -1713,6 +1744,11 @@ function toggleSidebar(){
   var isCollapsed=sb.classList.toggle('collapsed');
   main.classList.toggle('expanded', isCollapsed);
   localStorage.setItem('sidebarCollapsed', isCollapsed?'1':'0');
+  // Rotate arrow
+  var arrow=document.getElementById('toggleArrow');
+  if(arrow) arrow.style.transform = isCollapsed ? 'rotate(180deg)' : 'rotate(0deg)';
+  var btn=document.getElementById('sidebarToggleBtn');
+  if(btn) btn.title = isCollapsed ? 'Expandir menu' : 'Recolher menu';
 }
 
 // Restore sidebar state on load
@@ -1720,8 +1756,15 @@ function toggleSidebar(){
   if(localStorage.getItem('sidebarCollapsed')==='1'){
     var sb=document.querySelector('.sidebar');
     var main=document.querySelector('.main');
-    if(sb){sb.classList.add('collapsed');}
-    if(main){main.classList.add('expanded');}
+    if(sb) sb.classList.add('collapsed');
+    if(main) main.classList.add('expanded');
+    // Rotate arrow on page load if collapsed
+    setTimeout(function(){
+      var arrow=document.getElementById('toggleArrow');
+      if(arrow) arrow.style.transform='rotate(180deg)';
+      var btn=document.getElementById('sidebarToggleBtn');
+      if(btn) btn.title='Expandir menu';
+    }, 50);
   }
 })();
 
