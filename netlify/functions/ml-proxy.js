@@ -1,61 +1,68 @@
-// netlify/functions/ml-proxy.js
-// Proxy para chamadas à API do ML — resolve CORS no navegador
+// functions/ml-proxy.js
+// Cloudflare Pages Function — proxy para API do ML (resolve CORS)
 
-exports.handler = async function(event, context) {
+export const onRequestGet = async (context) => {
   const headers = {
     "Access-Control-Allow-Origin": "*",
-    "Access-Control-Allow-Headers": "Content-Type, Authorization",
-    "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
-    "Content-Type": "application/json"
+    "Content-Type": "application/json",
   };
 
-  if (event.httpMethod === "OPTIONS") {
-    return { statusCode: 200, headers, body: "" };
-  }
-
   try {
-    const params = event.queryStringParameters || {};
-    const mlPath  = params.path;
-    const token   = params.token;
+    const url = new URL(context.request.url);
+    const mlPath = url.searchParams.get("path");
+    const token  = url.searchParams.get("token");
 
     if (!mlPath || !token) {
-      return {
-        statusCode: 200,
-        headers,
-        body: JSON.stringify({ _status: 400, error: "Parâmetros 'path' e 'token' são obrigatórios." })
-      };
+      return new Response(
+        JSON.stringify({ _status: 400, error: "Parâmetros 'path' e 'token' são obrigatórios." }),
+        { status: 200, headers }
+      );
     }
 
-    const url = "https://api.mercadolibre.com" + mlPath;
+    const mlUrl = "https://api.mercadolibre.com" + mlPath;
 
-    const resp = await fetch(url, {
+    const resp = await fetch(mlUrl, {
       headers: {
         "Authorization": "Bearer " + token,
-        "Accept": "application/json"
-      }
+        "Accept": "application/json",
+      },
     });
 
     let data;
     const text = await resp.text();
-    try { data = JSON.parse(text); } catch(e) { data = { error: text }; }
+    try { data = JSON.parse(text); } catch (e) { data = { error: text }; }
 
-    // Inject HTTP status so client can handle errors without fetch() throwing
-    if (typeof data === 'object' && data !== null) {
+    if (typeof data === "object" && data !== null) {
       data._status = resp.status;
     }
 
-    return {
-      statusCode: 200, // always 200 — error detection via _status field
-      headers,
-      body: JSON.stringify(data)
-    };
+    return new Response(JSON.stringify(data), { status: 200, headers });
 
   } catch (err) {
-    console.error("ml-proxy error:", err);
-    return {
-      statusCode: 200,
-      headers,
-      body: JSON.stringify({ _status: 500, error: err.message })
-    };
+    return new Response(
+      JSON.stringify({ _status: 500, error: err.message }),
+      { status: 200, headers }
+    );
   }
+};
+
+export const onRequestOptions = async () => {
+  return new Response(null, {
+    status: 204,
+    headers: {
+      "Access-Control-Allow-Origin": "*",
+      "Access-Control-Allow-Methods": "GET, OPTIONS",
+      "Access-Control-Allow-Headers": "Content-Type",
+    },
+  });
+};
+
+// Catch all methods
+export const onRequest = async (context) => {
+  if (context.request.method === "GET") return onRequestGet(context);
+  if (context.request.method === "OPTIONS") return onRequestOptions();
+  return new Response(JSON.stringify({ error: "Method not allowed" }), {
+    status: 405,
+    headers: { "Content-Type": "application/json" }
+  });
 };
