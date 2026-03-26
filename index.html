@@ -1436,7 +1436,7 @@ async function mlHandleRedirect(){
     mlLog('Token obtido com sucesso! ✓','ok');
 
     // Get user info
-    var userResp=await fetch('/ml-proxy?token='+encodeURIComponent(data.access_token)+'&path='+encodeURIComponent('/users/me'));
+    var userResp=await fetch(ML_GATEWAY+'/proxy?token='+encodeURIComponent(data.access_token)+'&path='+encodeURIComponent('/users/me'));
     var user=await userResp.json();
     if(!user.id)throw new Error('Não foi possível identificar o usuário ML.');
 
@@ -1502,7 +1502,7 @@ async function mlFetch(url){
 
 async function mlCallProxy(url,token){
   var mlPath=url.replace('https://api.mercadolibre.com','');
-  var proxyUrl='/ml-proxy?token='+encodeURIComponent(token)+'&path='+encodeURIComponent(mlPath);
+  var proxyUrl=ML_GATEWAY+'/proxy?token='+encodeURIComponent(token)+'&path='+encodeURIComponent(mlPath);
   var resp=await fetch(proxyUrl);
   if(!resp.ok) return {_status:resp.status,error:'Proxy HTTP '+resp.status};
   var body=await resp.json().catch(function(){return{_status:500,error:'Invalid JSON from proxy'};});
