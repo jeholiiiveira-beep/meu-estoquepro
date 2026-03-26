@@ -1566,66 +1566,50 @@ async function mlSync(){
     for(var i=0;i<allItemIds.length;i+=20){
       var batch=allItemIds.slice(i,i+20);
       var resp=await mlFetch(
-        'https://api.mercadolibre.com/items?ids='+batch.join(',')+'&attributes=id,title,seller_sku,seller_custom_field,available_quantity,price,thumbnail,category_id,attributes,variations'
+        'https://api.mercadolibre.com/items?ids='+batch.join(',')+'&attributes=id,title,seller_sku,seller_custom_field,available_quantity,price,category_id,variations'
       );
       resp.forEach(function(r){if(r.code===200)itemsData.push(r.body);});
-      mlProgress(30+Math.round((i/allItemIds.length)*30));
+      mlProgress(30+Math.round((i/allItemIds.length)*20));
     }
+    mlLog('Detalhes carregados para '+itemsData.length+' anúncios.','ok');
+    mlProgress(50);
 
-    // ── 2b. Buscar variações completas para extrair SELLER_SKU ──────
-    mlLog('Buscando SKUs das variações…','info');
-    var variationsMap={};
-    // Busca variações apenas dos itens que têm variações
-    var itemsWithVariations=itemsData.filter(function(item){
-      return item.variations && item.variations.length>0;
-    });
-    mlLog(itemsWithVariations.length+' produto(s) com variações encontrados.','info');
-
-    for(var vi=0;vi<itemsWithVariations.length;vi+=5){
-      var vBatch=itemsWithVariations.slice(vi,vi+5);
+    // ── 3. Para itens com variações, buscar detalhes completos ──
+    mlLog('Buscando variações e SKUs…','info');
+    var itemsFullData=[];
+    for(var vi=0;vi<itemsData.length;vi+=5){
+      var vBatch=itemsData.slice(vi,vi+5);
       await Promise.all(vBatch.map(async function(item){
         try{
-          var vData=await mlFetch('https://api.mercadolibre.com/items/'+item.id+'?attributes=id,seller_sku,seller_custom_field,variations');
-          if(vData && vData.variations && vData.variations.length>0){
-            // Pega o SKU da primeira variação (ou da variação com mais estoque)
-            var bestVar=vData.variations.reduce(function(best,v){
-              return (v.available_quantity||0)>(best.available_quantity||0)?v:best;
-            },vData.variations[0]);
-
-            // Procura SELLER_SKU no atributo da variação
-            var varSku='';
-            if(bestVar.attributes){
-              var skuA=bestVar.attributes.find(function(a){
-                return a.id==='SELLER_SKU'||a.id==='SKU';
-              });
-              if(skuA && skuA.value_name) varSku=skuA.value_name;
-            }
-            // Fallback: seller_custom_field da variação
-            if(!varSku && bestVar.seller_custom_field) varSku=bestVar.seller_custom_field;
-            // Fallback: seller_sku do item raiz
-            if(!varSku && vData.seller_sku) varSku=vData.seller_sku;
-            // Fallback: seller_custom_field do item raiz
-            if(!varSku && vData.seller_custom_field) varSku=vData.seller_custom_field;
-
-            if(varSku) variationsMap[item.id]=varSku;
+          if(item.variations && item.variations.length>0){
+            // Busca variações completas com atributos e estoque individual
+            var full=await mlFetch(
+              'https://api.mercadolibre.com/items/'+item.id+
+              '?attributes=id,title,seller_sku,seller_custom_field,variations,price'
+            );
+            if(full && !full.error) itemsFullData.push(full);
+            else itemsFullData.push(item);
+          } else {
+            itemsFullData.push(item);
           }
         }catch(e){
-          console.warn('Erro ao buscar variações de '+item.id,e);
+          itemsFullData.push(item);
         }
       }));
+      mlProgress(50+Math.round((vi/itemsData.length)*15));
     }
-    mlLog('SKUs de variações carregados: '+Object.keys(variationsMap).length,'ok');
+    mlLog('Dados completos carregados.','ok');
+    mlProgress(65);
 
-    mlLog('Detalhes carregados para '+itemsData.length+' produtos.','ok');
-    mlProgress(60);
-
-    // ── 3. Get sales last 30 days ────────────────────────────
+    // ── 4. Get sales last 30 days ────────────────────────────
     mlLog('Buscando vendas dos últimos 30 dias…','info');
     var dateFrom=new Date();
     dateFrom.setDate(dateFrom.getDate()-30);
     var dateFromStr=dateFrom.toISOString().split('T')[0]+'T00:00:00.000-03:00';
 
-    var salesMap={};
+    // salesMap por item_id E por variation_id
+    var salesByItem={};
+    var salesByVariation={};
     var salesOffset=0;
     var salesTotal=null;
 
@@ -1638,77 +1622,119 @@ async function mlSync(){
       if(salesTotal===null)salesTotal=salesData.paging.total;
       salesData.results.forEach(function(order){
         order.order_items.forEach(function(oi){
-          var id=oi.item.id;
-          salesMap[id]=(salesMap[id]||0)+oi.quantity;
+          var itemId=oi.item.id;
+          var varId=oi.item.variation_id;
+          // Por item
+          salesByItem[itemId]=(salesByItem[itemId]||0)+oi.quantity;
+          // Por variação
+          if(varId){
+            var key=itemId+'_'+varId;
+            salesByVariation[key]=(salesByVariation[key]||0)+oi.quantity;
+          }
         });
       });
       salesOffset+=50;
       if(salesOffset>=salesTotal)break;
-      mlProgress(60+Math.round(salesOffset/Math.max(salesTotal,1)*20));
+      mlProgress(65+Math.round(salesOffset/Math.max(salesTotal,1)*10));
     }
+    mlLog('Vendas calculadas.','ok');
+    mlProgress(75);
 
-    mlLog('Vendas calculadas para '+Object.keys(salesMap).length+' produtos.','ok');
-    mlProgress(80);
+    // ── 5. Limpar produtos do ML e reimportar com variações ──
+    mlLog('Limpando produtos antigos do ML e reimportando…','info');
 
-    // ── 4. Merge into products array ─────────────────────────
-    mlLog('Integrando dados ao sistema…','info');
+    // Remove todos os produtos que vieram do ML (têm mlId)
+    var nonMLProducts=products.filter(function(p){return !p.mlId;});
+    products.length=0;
+    nonMLProducts.forEach(function(p){products.push(p);});
+
+    // Recalcula nextId
+    var maxId=products.reduce(function(m,p){return Math.max(m,Number(p.id)||0);},10);
+    nextId=maxId+1;
+
     var importedCount=0;
-    var updatedCount=0;
+    var totalVariations=0;
 
-    itemsData.forEach(function(item){
-      // Get SKU: check multiple sources in order of priority
-      var sku = item.id; // default fallback
+    itemsFullData.forEach(function(item){
+      var itemSales=salesByItem[item.id]||0;
 
-      // 1. variationsMap — SKU buscado diretamente das variações (mais confiável)
-      if(variationsMap[item.id]){
-        sku = String(variationsMap[item.id]).trim();
+      if(item.variations && item.variations.length>0){
+        // ── Produto COM variações → um produto por variação ──
+        item.variations.forEach(function(variation){
+          totalVariations++;
 
-      // 2. seller_sku field (top level)
-      } else if(item.seller_sku && String(item.seller_sku).trim() !== ''){
-        sku = String(item.seller_sku).trim();
+          // SKU da variação
+          var varSku='';
+          if(variation.attributes){
+            var sa=variation.attributes.find(function(a){
+              return a.id==='SELLER_SKU'||a.id==='SKU';
+            });
+            if(sa && sa.value_name) varSku=sa.value_name;
+          }
+          if(!varSku && variation.seller_custom_field) varSku=variation.seller_custom_field;
+          if(!varSku && item.seller_sku) varSku=item.seller_sku;
+          if(!varSku && item.seller_custom_field) varSku=item.seller_custom_field;
 
-      // 3. seller_custom_field
-      } else if(item.seller_custom_field && String(item.seller_custom_field).trim() !== ''){
-        sku = String(item.seller_custom_field).trim();
+          // Nome com variação (cor, tamanho etc)
+          var varDesc='';
+          if(variation.attribute_combinations && variation.attribute_combinations.length>0){
+            varDesc=variation.attribute_combinations.map(function(ac){
+              return ac.value_name;
+            }).join(' / ');
+          }
+          var productName=item.title+(varDesc?' — '+varDesc:'');
 
-      // 4. attributes array
-      } else if(item.attributes && Array.isArray(item.attributes)){
-        var skuAttr = item.attributes.find(function(a){
-          return a.id === 'SELLER_SKU' || a.id === 'SKU';
+          // SKU fallback com descrição da variação
+          if(!varSku){
+            varSku=item.id+'_'+variation.id;
+          }
+
+          // Vendas desta variação específica
+          var varSales=salesByVariation[item.id+'_'+variation.id]||0;
+          // Se não tem por variação, divide proporcionalmente
+          if(!varSales && itemSales>0 && item.variations.length>0){
+            varSales=Math.round(itemSales/item.variations.length);
+          }
+
+          products.push({
+            id:nextId++,
+            sku:varSku,
+            name:productName,
+            cat:'Mercado Livre',
+            stock:variation.available_quantity||0,
+            min:0,
+            sales:varSales,
+            lot:0,
+            cost:0,
+            price:variation.price||item.price||0,
+            supplier:'Mercado Livre',
+            mlId:item.id,
+            mlVariationId:variation.id
+          });
+          importedCount++;
         });
-        if(skuAttr && skuAttr.value_name && String(skuAttr.value_name).trim() !== ''){
-          sku = String(skuAttr.value_name).trim();
+
+      } else {
+        // ── Produto SEM variações → um produto único ──
+        var sku=item.seller_sku||item.seller_custom_field||item.id;
+        if(item.attributes){
+          var sa=item.attributes.find(function(a){
+            return a.id==='SELLER_SKU'||a.id==='SKU';
+          });
+          if(sa && sa.value_name) sku=sa.value_name;
         }
-      }
-      var name=item.title;
-      var stock=item.available_quantity||0;
-      var price=item.price||0;
-      var sales30=salesMap[item.id]||0;
 
-      // Check if product already exists (by ML item ID or SKU)
-      var existing=products.find(function(p){
-        return p.mlId===item.id || p.sku===sku;
-      });
-
-      if(existing){
-        existing.stock=stock;
-        existing.sales=sales30;
-        existing.price=price;
-        existing.mlId=item.id;
-        if(!existing.supplier)existing.supplier='Mercado Livre';
-        updatedCount++;
-      }else{
         products.push({
           id:nextId++,
-          sku:sku,
-          name:name,
+          sku:String(sku),
+          name:item.title,
           cat:'Mercado Livre',
-          stock:stock,
+          stock:item.available_quantity||0,
           min:0,
-          sales:sales30,
+          sales:itemSales,
           lot:0,
           cost:0,
-          price:price,
+          price:item.price||0,
           supplier:'Mercado Livre',
           mlId:item.id
         });
@@ -1716,18 +1742,18 @@ async function mlSync(){
       }
     });
 
+    mlLog('✓ '+importedCount+' produtos importados ('+totalVariations+' variações expandidas).','ok');
     mlProgress(90);
 
-    // ── 5. Save to Firebase ───────────────────────────────────
+    // ── Salva no Firebase ─────────────────────────────────────
     if(window.fbSave){
       mlLog('Salvando na nuvem (Firebase)…','info');
       await window.fbSave(products);
     }
+    mlProgress(95);
 
-    mlProgress(100);
-
-    // ── 6. Update UI ─────────────────────────────────────────
-    var totalSales=Object.values(salesMap).reduce(function(a,b){return a+b;},0);
+// ── 6. Update UI ─────────────────────────────────────────
+    var totalSales=Object.values(salesByItem).reduce(function(a,b){return a+b;},0);
     document.getElementById('mlCountProducts').textContent=products.length;
     document.getElementById('mlCountActive').textContent=allItemIds.length;
     document.getElementById('mlCountSales').textContent=totalSales;
@@ -1740,7 +1766,7 @@ async function mlSync(){
       'Atualizado em '+new Date().toLocaleTimeString('pt-BR')+' | '+importedCount+' importados, '+updatedCount+' atualizados',
       'connected');
 
-    mlLog('✓ Sincronismo concluído! '+importedCount+' importados, '+updatedCount+' atualizados.','ok');
+    mlLog('✓ Sincronismo concluído! '+importedCount+' produtos/variações importados.','ok');
 
     // Re-render all pages
     populateCats();renderStatCards();renderTable();
