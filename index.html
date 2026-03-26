@@ -529,7 +529,12 @@ tbody tr.row-alert td{background:rgba(252,235,235,.18)}
     <div class="page" id="page-produtos">
       <div class="page-title">Produtos</div>
       <div class="page-sub">Gerencie todos os produtos cadastrados</div>
-      <div style="margin-bottom:1rem;display:flex;justify-content:flex-end"><button class="btn btn-primary" onclick="openProductModal()"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px"><path d="M8 3v10M3 8h10"/></svg>Novo produto</button></div>
+      <div style="margin-bottom:1rem;display:flex;justify-content:flex-end;gap:8px">
+        <button class="btn" onclick="exportSkuSheet()" title="Exportar planilha para preencher SKUs">
+          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" style="width:14px;height:14px"><path d="M2 11v2a1 1 0 001 1h10a1 1 0 001-1v-2M8 3v8M5 8l3 3 3-3"/></svg>
+          Exportar SKUs
+        </button>
+        <button class="btn btn-primary" onclick="openProductModal()"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px"><path d="M8 3v10M3 8h10"/></svg>Novo produto</button></div>
       <div class="table-card"><div class="table-scroll"><table>
         <thead><tr>
           <th style="width:100px">SKU</th><th style="width:190px">Produto</th><th style="width:88px">Categoria</th>
@@ -1792,6 +1797,61 @@ function toggleSidebar(){
     }, 50);
   }
 })();
+
+
+/* ===== EXPORTAR PLANILHA DE SKUs ===== */
+function exportSkuSheet(){
+  if(!window.XLSX){showToast('Aguarde carregar a página e tente novamente.');return;}
+  var wb=window.XLSX.utils.book_new();
+
+  // Sheet 1: Produtos para preencher SKU
+  var rows=[['ID_INTERNO','ID_ML','NOME','SKU_ATUAL','SEU_SKU_NOVO','CATEGORIA','ESTOQUE','MINIMO','VENDAS_30D','CUSTO','PRECO','FORNECEDOR']];
+  products.forEach(function(p){
+    rows.push([
+      p.id,
+      p.mlId||'',
+      p.name,
+      p.sku,
+      '', // coluna amarela para preencher
+      p.cat||'',
+      p.stock||0,
+      p.min||0,
+      p.sales||0,
+      p.cost||0,
+      p.price||0,
+      p.supplier||''
+    ]);
+  });
+
+  var ws=window.XLSX.utils.aoa_to_sheet(rows);
+
+  // Larguras das colunas
+  ws['!cols']=[
+    {wch:12},{wch:18},{wch:40},{wch:20},{wch:20},
+    {wch:14},{wch:10},{wch:8},{wch:12},{wch:10},{wch:10},{wch:15}
+  ];
+
+  window.XLSX.utils.book_append_sheet(wb,ws,'Produtos - Preencha SKU');
+
+  // Sheet 2: Instruções
+  var instrucoes=[
+    ['INSTRUÇÕES'],
+    [''],
+    ['1. Preencha a coluna SEU_SKU_NOVO com seu código interno para cada produto'],
+    ['2. Deixe em branco os produtos que não precisam de alteração'],
+    ['3. Não altere as colunas ID_INTERNO e ID_ML — são usadas para vincular os dados'],
+    ['4. Salve o arquivo e envie para o Claude fazer o upload'],
+    [''],
+    ['DICA: Produtos do Mercado Livre têm ID_ML preenchido (MLB...)'],
+    ['Produtos manuais têm ID_ML vazio'],
+  ];
+  var ws2=window.XLSX.utils.aoa_to_sheet(instrucoes);
+  ws2['!cols']=[{wch:80}];
+  window.XLSX.utils.book_append_sheet(wb,ws2,'Instruções');
+
+  window.XLSX.writeFile(wb,'produtos_sku_'+new Date().toISOString().slice(0,10)+'.xlsx');
+  showToast('Planilha exportada! Preencha a coluna SEU_SKU_NOVO e envie para o Claude.');
+}
 
 // INIT
 populateCats();renderStatCards();renderTable();
