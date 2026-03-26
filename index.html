@@ -1582,13 +1582,18 @@ async function mlSync(){
       await Promise.all(vBatch.map(async function(item){
         try{
           if(item.variations && item.variations.length>0){
-            // Busca variações completas com atributos e estoque individual
-            var full=await mlFetch(
-              'https://api.mercadolibre.com/items/'+item.id+
-              '?attributes=id,title,seller_sku,seller_custom_field,variations,price'
-            );
-            if(full && !full.error) itemsFullData.push(full);
-            else itemsFullData.push(item);
+            // Busca variações completas via endpoint dedicado
+            try{
+              // Tenta buscar via /items/{id} com todos os campos de variação
+              var full=await mlFetch('https://api.mercadolibre.com/items/'+item.id);
+              if(full && full.variations && full.variations.length>0){
+                itemsFullData.push(full);
+              } else {
+                itemsFullData.push(item);
+              }
+            }catch(e2){
+              itemsFullData.push(item);
+            }
           } else {
             itemsFullData.push(item);
           }
@@ -1684,9 +1689,21 @@ async function mlSync(){
           }
           var productName=item.title+(varDesc?' — '+varDesc:'');
 
-          // SKU fallback com descrição da variação
+          // SKU fallback: usa descrição da variação (cor, tamanho etc)
           if(!varSku){
-            varSku=item.id+'_'+variation.id;
+            if(variation.attribute_combinations && variation.attribute_combinations.length>0){
+              // Cria um SKU legível com base nas características da variação
+              var varParts=variation.attribute_combinations.map(function(ac){
+                return ac.value_name||'';
+              }).filter(Boolean);
+              if(varParts.length>0){
+                varSku=varParts.join('-');
+              } else {
+                varSku=item.id+'_'+variation.id;
+              }
+            } else {
+              varSku=item.id+'_'+variation.id;
+            }
           }
 
           // Vendas desta variação específica
@@ -1763,7 +1780,7 @@ async function mlSync(){
     document.getElementById('mlLastSync').textContent=new Date(now).toLocaleString('pt-BR');
 
     mlSetStatus('Sincronizado com sucesso',
-      'Atualizado em '+new Date().toLocaleTimeString('pt-BR')+' | '+importedCount+' importados, '+updatedCount+' atualizados',
+      'Atualizado em '+new Date().toLocaleTimeString('pt-BR')+' | '+importedCount+' produtos/variações importados',
       'connected');
 
     mlLog('✓ Sincronismo concluído! '+importedCount+' produtos/variações importados.','ok');
