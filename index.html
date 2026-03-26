@@ -1330,6 +1330,9 @@ function showToast(msg){
 const ML_APP_ID   = "4538292403150286";
 const ML_SECRET   = null; // secret kept server-side only
 const ML_REDIRECT = "https://meu-estoquepro.pages.dev";
+// URL do Cloudflare Worker (deploy separado)
+// Após criar o Worker, substitua pela URL real
+const ML_GATEWAY  = "https://meu-estoquepro.jeholiiveira.workers.dev";
 const ML_AUTH_URL = "https://auth.mercadolivre.com.br/authorization?response_type=code&client_id=" + ML_APP_ID + "&redirect_uri=" + encodeURIComponent(ML_REDIRECT);
 
 // Token management (stored in localStorage for persistence)
@@ -1417,7 +1420,7 @@ async function mlHandleRedirect(){
       redirect_uri:ML_REDIRECT
     });
 
-    var resp=await fetch('/ml-token',{
+    var resp=await fetch(ML_GATEWAY+'/token',{
       method:'POST',
       headers:{'Content-Type':'application/json'},
       body:JSON.stringify({grant_type:'authorization_code',code:code})
@@ -1463,7 +1466,7 @@ async function mlRefreshToken(){
     client_secret:ML_SECRET,
     refresh_token:refresh
   });
-  var resp=await fetch('/ml-token',{
+  var resp=await fetch(ML_GATEWAY+'/token',{
     method:'POST',
     headers:{'Content-Type':'application/json'},
     body:JSON.stringify({grant_type:'refresh_token',refresh_token:refresh})
