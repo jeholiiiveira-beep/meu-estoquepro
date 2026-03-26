@@ -1582,6 +1582,8 @@ async function mlCallProxy(url,token){
 }
 
 // ── Main sync ─────────────────────────────────────────────────
+var SKU_MAP={"Aromatizador Home Spray 250ml Premium Cheiro De Casa Limpa Capim Limão": "50 - Capim Limão", "Aromatizador Home Spray 250ml Premium Cheiro De Casa Limpa Cereja E Avelã": "50 - Cereja", "Aromatizador De Ambiente Difusor De Aromas Com Vareta 100ml Cha Branco - Bambo": "20 - Cha", "Cabo Controle Ps4 Usb V8 Carregador Com Filtro Carregar Pc": "22", "Kit Utensílios De Cozinha Silicone 5 Peças Jogo De Cozinha — Verde": "31 - Verde", "Kit Utensílios De Cozinha Silicone 5 Peças Jogo De Cozinha — Preto": "31 - Preto", "Kit Utensílios De Cozinha Silicone 5 Peças Jogo De Cozinha — Azul": "31 - Azul", "Kit Utensílios De Cozinha Silicone 5 Peças Jogo De Cozinha — Rosa": "31 - Rosa", "Kit Utensílios De Cozinha Silicone 5 Peças Jogo De Cozinha — Vermelho": "31 - Vermelho", "Maquina Cortar Cabelo Profissional Sem Fio Acabamento Barba Prateado Bivolt": "33 - 5027", "Fone Bluetooth Gamer Pro Tws Jogos E-sports Academia Dual Preto": "4 - Fone Gamer X15", "Suporte Celular Carro Veicular Trava Fixa Forte Painel Vidro Preto": "8 - B", "Vela Aromática Perfumada 100g Ambiente Relaxante Decorativa Cereja E Avelã Lisa": "21 - Cereja", "Suporte Notebook Dobrável Portátil Anti Derrapante De Mesa — Preto": "37 - Preto", "Suporte Notebook Dobrável Portátil Anti Derrapante De Mesa — Branco": "37 - Branco", "Vela Aromática Perfumada 100g Ambiente Relaxante Decorativa Lavanda Lisa": "21 - Lavanda", "Aromatizador Home Spray 250ml Premium Cheiro De Casa Limpa Lavanda": "50 - Lavanda", "Fone De Ouvido Bluetooth Headphone Sem Fio Over-ear Headset — Azul-celeste": "41 - Azul-celeste", "Fone De Ouvido Bluetooth Headphone Sem Fio Over-ear Headset — Creme": "41 - Creme", "Fone De Ouvido Bluetooth Headphone Sem Fio Over-ear Headset — Rosa": "41 - Rosa", "Fone De Ouvido Bluetooth Headphone Sem Fio Over-ear Headset — Lilás": "41 - Lilás", "Fone De Ouvido Bluetooth Headphone Sem Fio Over-ear Headset — Preto": "41 - Preto", "Fone De Ouvido Headphone Bluetooth Sem Fio Over-ear Headset — Preto": "32 - Preto", "Fone De Ouvido Headphone Bluetooth Sem Fio Over-ear Headset — Azul": "32 - Azul", "Fone De Ouvido Headphone Bluetooth Sem Fio Over-ear Headset — Vermelho": "32 - Vermelho", "Fone De Ouvido Headphone Bluetooth Sem Fio Over-ear Headset — Branco": "32 - Branco", "Fone De Ouvido Headphone Bluetooth Sem Fio Over-ear Headset — Cinza": "32 - Cinza", "Garrafa Térmica Agua Inox 600ml Borracha Silicone Reforçada — Lilás": "35 - 600ml - Lilás", "Garrafa Térmica Agua Inox 600ml Borracha Silicone Reforçada — Pink": "35 - 600ml - Pink", "Garrafa Térmica Agua Inox 600ml Borracha Silicone Reforçada — Preta": "35 - 600ml - Preta", "Garrafa Térmica Agua Inox 600ml Borracha Silicone Reforçada — Azul-marinho": "35 - 600ml - Azul-marinho", "Garrafa Térmica Agua Inox 600ml Borracha Silicone Reforçada — Rosa-claro": "35 - 600ml - Rosa-claro", "Garrafa Térmica Agua Inox 600ml Borracha Silicone Reforçada — Roxa": "35 - 600ml - Roxa", "Garrafa Térmica Agua Inox 600ml Borracha Silicone Reforçada — Azul Bebê": "35 - 600ml - Azul Bebê", "Garrafa Térmica Agua Inox 600ml Borracha Silicone Reforçada — Verde-limão": "35 - 600ml - Verde-limão", "Garrafa Térmica Agua Inox 600ml Borracha Silicone Reforçada — Bege": "35 - 600ml - Bege", "Garrafa Térmica Agua Inox 600ml Borracha Silicone Reforçada — Azul": "35 - 600ml - Azul", "Garrafa Térmica Agua Inox 600ml Borracha Silicone Reforçada — Azul-celeste": "35 - 600ml - Azul-celeste", "Garrafa Térmica Agua Inox 600ml Borracha Silicone Reforçada — Branco": "35 - 600ml - Branco", "Garrafa Térmica Agua Inox 600ml Borracha Silicone Reforçada — Cinza-escuro": "35 - 600ml - Cinza-escuro", "Garrafa Térmica Agua Inox 600ml Borracha Silicone Reforçada — Verde-musgo": "35 - 600ml - Verde-musgo", "Aromatizador De Ambiente Difusor De Aromas Com Vareta 100ml Capim Limão": "20 - Capim", "Fone De Ouvido Bluetooth 5.3 Tws Gancho Esportivo Corrida Preto": "10", "Aromatizador Home Spray 250ml Premium Cheiro De Casa Limpa Chá Branco Bamboo": "50 - Cha Branco Bamboo", "Kit Teclado E Mouse Sem Fio Usb Ultra Slim Wireless 2.4ghz — Branco / Branco": "26 - Branco", "Kit Teclado E Mouse Sem Fio Usb Ultra Slim Wireless 2.4ghz — Preto / Preto": "26 - Preto", "Garrafa Térmica Agua Inox 350ml Alça E Tampa Com Canudo — Rosa": "36 - Rosa", "Garrafa Térmica Agua Inox 350ml Alça E Tampa Com Canudo — Preto": "36 - Preto", "Garrafa Térmica Agua Inox 350ml Alça E Tampa Com Canudo — Verde-claro": "36 - Verde-claro", "Garrafa Térmica Agua Inox 350ml Alça E Tampa Com Canudo — Azul-marinho": "36 - Azul-marinho", "Garrafa Térmica Agua Inox 350ml Alça E Tampa Com Canudo — Azul-claro": "36 - Azul-claro", "Garrafa Térmica Agua Inox 350ml Alça E Tampa Com Canudo — Roxo": "36 - Roxo", "Garrafa Térmica Agua Inox 350ml Alça E Tampa Com Canudo — Lilás": "36 - Lilás", "Garrafa Térmica Agua Inox 350ml Alça E Tampa Com Canudo — Pink": "36 - Pink", "Garrafa Térmica Agua Inox 350ml Alça E Tampa Com Canudo — Bege": "36 - Bege", "Fone De Ouvido Bluetooth Tws Pro Sem Fio Visor Premium Preto Preto": "13", "Garrafa Térmica Agua Inox 1000ml Borracha Silicone Reforçada Preto": "38 - 1L - Preto", "Garrafa Térmica Agua Inox 1000ml Borracha Silicone Reforçada Azul-marinho": "38 - 1L - Azul-marinho", "Garrafa Térmica Agua Inox 1000ml Borracha Silicone Reforçada Lilás": "38 - 1L - Lilás", "Fone De Ouvido Headphone Bluetooth Estéreo Sem Fio Headset — Preto": "27 - Preto", "Fone De Ouvido Headphone Bluetooth Estéreo Sem Fio Headset — Bege": "27 - Bege", "Fone De Ouvido Headphone Bluetooth Estéreo Sem Fio Headset — Branco": "27 - Branco", "Fone De Ouvido Headphone Bluetooth Estéreo Sem Fio Headset — Azul-celeste": "27 - Azul", "Cabo Vga 1,5 Metros Para Monitor Macho Lcd Pc Câmeras": "24", "Fone De Ouvido Bluetooth 5.4 Headphone Estereo Sem Fio — Preto": "23 - PRETO", "Fone De Ouvido Bluetooth 5.4 Headphone Estereo Sem Fio — Azul-claro": "23 - Azul Claro", "Fone De Ouvido Bluetooth 5.4 Headphone Estereo Sem Fio — Creme": "23 - CREME", "Fone De Ouvido Bluetooth 5.4 Headphone Estereo Sem Fio — Lilás": "23 - LILAS", "Fone De Ouvido Bluetooth 5.4 Headphone Estereo Sem Fio — Rosa": "23 - ROSA", "Garrafa Térmica Agua Inox 1000ml Borracha Silicone Reforçada Rosa": "38 - 1L - Rosa", "Cabo V8 Usb 2.0 Para Controle Ps4 Xbox One 1,8m Com Filtro": "22", "Garrafa Térmica Agua Inox 1000ml Borracha Silicone Reforçada Pink": "38 - 1L - Pink", "Garrafa Térmica Agua Inox 1000ml Borracha Silicone Reforçada Azul-claro": "38 - 1L - Azul-claro", "Garrafa Térmica Agua Inox 1000ml Borracha Silicone Reforçada Roxo": "38 - 1L - Roxo", "Mini Mixer Misturador Bebidas Portátil Eletrico Recarregável — Preto": "28 - Preto", "Mini Mixer Misturador Bebidas Portátil Eletrico Recarregável — Branco": "28 - Branco", "Cabo Vga Para Monitor 1.5 Metros Cbx-mvga15": "24", "Garrafa Térmica Agua Inox 1000ml Borracha Silicone Reforçada Verde-limão": "38 - 1L - Verde Limão"};
+
 async function mlSync(){
   var userId=mlGetUserId();
   if(!userId){showToast('Conecte ao Mercado Livre primeiro.');return;}
@@ -1744,7 +1746,7 @@ async function mlSync(){
         item.variations.forEach(function(variation){
           totalVariations++;
 
-          // SKU da variação
+          // SKU da variação — usa SKU_MAP (planilha) como prioridade máxima
           var varSku='';
           if(variation.attributes){
             var sa=variation.attributes.find(function(a){
@@ -1765,7 +1767,8 @@ async function mlSync(){
           }
           var productName=item.title+(varDesc?' — '+varDesc:'');
 
-          // SKU fallback: usa descrição da variação (cor, tamanho etc)
+          // ✅ SKU_MAP tem prioridade máxima — substitui qualquer valor do ML
+          if(SKU_MAP[productName]) varSku=SKU_MAP[productName];
           if(!varSku){
             if(variation.attribute_combinations && variation.attribute_combinations.length>0){
               // Cria um SKU legível com base nas características da variação
@@ -1794,7 +1797,7 @@ async function mlSync(){
           var existing=existingMLMap[existKey];
           products.push({
             id:existing?existing.id:nextId++,
-            sku:existing?existing.sku:varSku,
+            sku:SKU_MAP[productName]?SKU_MAP[productName]:varSku,
             name:productName,
             cat:existing?existing.cat:'Mercado Livre',
             stock:variation.available_quantity||0,
@@ -1819,13 +1822,15 @@ async function mlSync(){
           });
           if(sa && sa.value_name) sku=sa.value_name;
         }
+        // ✅ SKU_MAP tem prioridade máxima — substitui qualquer valor do ML
+        if(SKU_MAP[item.title]) sku=SKU_MAP[item.title];
 
         // Preserva edições manuais se o produto já existia
         var existKeySingle=item.id;
         var existingSingle=existingMLMap[existKeySingle];
         products.push({
           id:existingSingle?existingSingle.id:nextId++,
-          sku:existingSingle?existingSingle.sku:String(sku),
+          sku:SKU_MAP[item.title]?SKU_MAP[item.title]:String(sku),
           name:item.title,
           cat:existingSingle?existingSingle.cat:'Mercado Livre',
           stock:item.available_quantity||0,
