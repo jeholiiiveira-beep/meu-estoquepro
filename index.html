@@ -1847,6 +1847,63 @@ async function mlSync(){
     });
 
     mlLog('✓ '+importedCount+' produtos importados ('+totalVariations+' variações expandidas).','ok');
+    mlProgress(88);
+
+    // ── Merge de produtos com mesmo SKU (anúncios MLBU duplicados) ────
+    mlLog('Verificando SKUs duplicados (anúncios MLBU)…','info');
+    var skuMergeMap={};
+    var mergedProducts=[];
+
+    // Primeiro: produtos SEM mlId (manuais) vão direto
+    products.forEach(function(p){
+      if(!p.mlId){
+        mergedProducts.push(p);
+      }
+    });
+
+    // Segundo: produtos COM mlId — agrupa por SKU
+    var mlProducts=products.filter(function(p){return !!p.mlId;});
+    mlProducts.forEach(function(p){
+      var key=p.sku;
+      if(!skuMergeMap[key]){
+        // Primeiro produto com este SKU — usa como base
+        skuMergeMap[key]=Object.assign({},p);
+        skuMergeMap[key]._allMlIds=[p.mlId];
+        skuMergeMap[key]._totalSales=p.sales||0;
+      } else {
+        // SKU duplicado (MLBU) — soma vendas, mantém estoque do primeiro
+        skuMergeMap[key]._allMlIds.push(p.mlId);
+        skuMergeMap[key]._totalSales+=(p.sales||0);
+        // Não altera o estoque (é o mesmo físico)
+      }
+    });
+
+    // Aplica o merge
+    var mergedCount=0;
+    Object.values(skuMergeMap).forEach(function(p){
+      p.sales=p._totalSales;
+      // Guarda mlIds extras para referência
+      if(p._allMlIds.length>1){
+        p.mlIdExtra=p._allMlIds.slice(1);
+        mergedCount++;
+      }
+      delete p._allMlIds;
+      delete p._totalSales;
+      mergedProducts.push(p);
+    });
+
+    if(mergedCount>0){
+      mlLog('Mesclados '+mergedCount+' grupos de SKUs duplicados (anúncios MLBU).','ok');
+    }
+
+    // Substitui a lista de produtos com a versão mesclada
+    products.length=0;
+    mergedProducts.forEach(function(p){products.push(p);});
+    // Renumera IDs
+    products.forEach(function(p,i){p.id=i+1;});
+    nextId=products.length+1;
+
+    mlLog('Total final: '+products.length+' produtos únicos.','ok');
     mlProgress(90);
 
     // ── Salva no Firebase ─────────────────────────────────────
