@@ -1561,7 +1561,7 @@ async function mlSync(){
     for(var i=0;i<allItemIds.length;i+=20){
       var batch=allItemIds.slice(i,i+20);
       var resp=await mlFetch(
-        'https://api.mercadolibre.com/items?ids='+batch.join(',')+'&attributes=id,title,seller_sku,available_quantity,price,thumbnail,category_id,attributes,variations'
+        'https://api.mercadolibre.com/items?ids='+batch.join(',')+'&attributes=id,title,seller_sku,available_quantity,price,thumbnail,category_id,attributes,variations,seller_custom_field'
       );
       resp.forEach(function(r){if(r.code===200)itemsData.push(r.body);});
       mlProgress(30+Math.round((i/allItemIds.length)*30));
@@ -1607,16 +1607,38 @@ async function mlSync(){
     var updatedCount=0;
 
     itemsData.forEach(function(item){
-      // Get SKU: check seller_sku field first, then attributes array, then item ID
+      // Get SKU: check multiple sources in order of priority
       var sku = item.id; // default fallback
-      if(item.seller_sku && item.seller_sku.trim() !== ''){
-        sku = item.seller_sku.trim();
+
+      // 1. seller_sku field (top level)
+      if(item.seller_sku && String(item.seller_sku).trim() !== ''){
+        sku = String(item.seller_sku).trim();
+
+      // 2. seller_custom_field (used by some ML sellers)
+      } else if(item.seller_custom_field && String(item.seller_custom_field).trim() !== ''){
+        sku = String(item.seller_custom_field).trim();
+
+      // 3. attributes array — look for SELLER_SKU attribute
       } else if(item.attributes && Array.isArray(item.attributes)){
         var skuAttr = item.attributes.find(function(a){
-          return a.id === 'SELLER_SKU' || a.id === 'SKU';
+          return a.id === 'SELLER_SKU' || a.id === 'SKU' || a.name === 'SKU';
         });
-        if(skuAttr && skuAttr.value_name && skuAttr.value_name.trim() !== ''){
-          sku = skuAttr.value_name.trim();
+        if(skuAttr && skuAttr.value_name && String(skuAttr.value_name).trim() !== ''){
+          sku = String(skuAttr.value_name).trim();
+        }
+
+      // 4. variations[0].seller_custom_field (products with variations)
+      } else if(item.variations && Array.isArray(item.variations) && item.variations.length > 0){
+        var v0 = item.variations[0];
+        if(v0.seller_custom_field && String(v0.seller_custom_field).trim() !== ''){
+          sku = String(v0.seller_custom_field).trim();
+        } else if(v0.attributes && Array.isArray(v0.attributes)){
+          var vSkuAttr = v0.attributes.find(function(a){
+            return a.id === 'SELLER_SKU' || a.id === 'SKU';
+          });
+          if(vSkuAttr && vSkuAttr.value_name){
+            sku = String(vSkuAttr.value_name).trim();
+          }
         }
       }
       var name=item.title;
