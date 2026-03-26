@@ -1712,10 +1712,19 @@ async function mlSync(){
     mlLog('Vendas calculadas.','ok');
     mlProgress(75);
 
-    // ── 5. Limpar produtos do ML e reimportar com variações ──
-    mlLog('Limpando produtos antigos do ML e reimportando…','info');
+    // ── 5. Merge inteligente: preserva edições manuais e reimporta do ML ──
+    mlLog('Mesclando produtos do ML preservando edições manuais…','info');
 
-    // Remove todos os produtos que vieram do ML (têm mlId)
+    // Monta índice dos produtos ML existentes por mlId+variationId para recuperar campos editados
+    var existingMLMap={};
+    products.forEach(function(p){
+      if(p.mlId){
+        var key=p.mlId+(p.mlVariationId?'_'+p.mlVariationId:'');
+        existingMLMap[key]=p;
+      }
+    });
+
+    // Remove todos os produtos que vieram do ML (têm mlId) — serão reimportados com merge
     var nonMLProducts=products.filter(function(p){return !p.mlId;});
     products.length=0;
     nonMLProducts.forEach(function(p){products.push(p);});
@@ -1780,18 +1789,21 @@ async function mlSync(){
             varSales=Math.round(itemSales/item.variations.length);
           }
 
+          // Preserva edições manuais se o produto já existia
+          var existKey=item.id+'_'+variation.id;
+          var existing=existingMLMap[existKey];
           products.push({
-            id:nextId++,
-            sku:varSku,
+            id:existing?existing.id:nextId++,
+            sku:existing?existing.sku:varSku,
             name:productName,
-            cat:'Mercado Livre',
+            cat:existing?existing.cat:'Mercado Livre',
             stock:variation.available_quantity||0,
-            min:0,
+            min:existing?existing.min:0,
             sales:varSales,
-            lot:0,
-            cost:0,
+            lot:existing?existing.lot:0,
+            cost:existing?existing.cost:0,
             price:variation.price||item.price||0,
-            supplier:'Mercado Livre',
+            supplier:existing?existing.supplier:'Mercado Livre',
             mlId:item.id,
             mlVariationId:variation.id
           });
@@ -1808,18 +1820,21 @@ async function mlSync(){
           if(sa && sa.value_name) sku=sa.value_name;
         }
 
+        // Preserva edições manuais se o produto já existia
+        var existKeySingle=item.id;
+        var existingSingle=existingMLMap[existKeySingle];
         products.push({
-          id:nextId++,
-          sku:String(sku),
+          id:existingSingle?existingSingle.id:nextId++,
+          sku:existingSingle?existingSingle.sku:String(sku),
           name:item.title,
-          cat:'Mercado Livre',
+          cat:existingSingle?existingSingle.cat:'Mercado Livre',
           stock:item.available_quantity||0,
-          min:0,
+          min:existingSingle?existingSingle.min:0,
           sales:itemSales,
-          lot:0,
-          cost:0,
+          lot:existingSingle?existingSingle.lot:0,
+          cost:existingSingle?existingSingle.cost:0,
           price:item.price||0,
-          supplier:'Mercado Livre',
+          supplier:existingSingle?existingSingle.supplier:'Mercado Livre',
           mlId:item.id
         });
         importedCount++;
