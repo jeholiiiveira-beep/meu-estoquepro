@@ -530,6 +530,7 @@ tbody tr.row-alert td{background:rgba(252,235,235,.18)}
       <div class="page-title">Produtos</div>
       <div class="page-sub">Gerencie todos os produtos cadastrados</div>
       <div style="margin-bottom:1rem;display:flex;justify-content:flex-end;gap:8px">
+        <button class="btn" onclick="saveAllToFirebase()" title="Salvar todos os produtos no Firebase" style="background:#27500A;color:#fff;border-color:#27500A">☁️ Salvar no Firebase</button>
         <button class="btn" onclick="exportSkuSheet()" title="Exportar planilha para preencher SKUs">
           <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" style="width:14px;height:14px"><path d="M2 11v2a1 1 0 001 1h10a1 1 0 001-1v-2M8 3v8M5 8l3 3 3-3"/></svg>
           Exportar SKUs
@@ -811,18 +812,84 @@ tbody tr.row-alert td{background:rgba(252,235,235,.18)}
 
 <script>
 let products=[
-  {id:1,sku:"CAL-001",name:"Tênis Runner Pro",cat:"Calçados",stock:45,min:20,sales:38,lot:60,cost:89.90,price:199.90,supplier:"SportSupply"},
-  {id:2,sku:"CAM-012",name:"Camiseta Dry Fit P",cat:"Vestuário",stock:8,min:15,sales:42,lot:50,cost:22.00,price:59.90,supplier:"TextilBR"},
-  {id:3,sku:"CAM-013",name:"Camiseta Dry Fit M",cat:"Vestuário",stock:3,min:15,sales:55,lot:50,cost:22.00,price:59.90,supplier:"TextilBR"},
-  {id:4,sku:"ACS-007",name:"Mochila Trail 30L",cat:"Acessórios",stock:0,min:5,sales:12,lot:20,cost:135.00,price:289.90,supplier:"OutdoorBR"},
-  {id:5,sku:"CAL-008",name:"Sandália Slide",cat:"Calçados",stock:62,min:10,sales:18,lot:30,cost:35.00,price:89.90,supplier:"SportSupply"},
-  {id:6,sku:"EQP-004",name:"Garrafa Térmica 600ml",cat:"Equipamento",stock:24,min:10,sales:29,lot:40,cost:48.00,price:119.90,supplier:"ThermoMax"},
-  {id:7,sku:"EQP-011",name:"Luva de Treino M",cat:"Equipamento",stock:7,min:8,sales:11,lot:24,cost:29.90,price:69.90,supplier:"FitGear"},
-  {id:8,sku:"CAM-020",name:"Shorts Compression",cat:"Vestuário",stock:31,min:12,sales:24,lot:36,cost:44.00,price:99.90,supplier:"TextilBR"},
-  {id:9,sku:"ACS-015",name:"Meias Esportivas Kit",cat:"Acessórios",stock:5,min:20,sales:60,lot:100,cost:8.50,price:24.90,supplier:"TextilBR"},
-  {id:10,sku:"EQP-019",name:"Corda de Pular Pro",cat:"Equipamento",stock:18,min:6,sales:9,lot:12,cost:32.00,price:74.90,supplier:"FitGear"},
+  {id:1,sku:"50 - Capim Lim\u00e3o",name:"Aromatizador Home Spray 250ml Premium Cheiro De Casa Limpa Capim Lim\u00e3o",cat:"Mercado Livre",stock:15,min:0,sales:1,lot:0,cost:0.0,price:64.99,supplier:"Mercado Livre",mlId:"MLB6289300244"},
+  {id:2,sku:"50 - Cereja",name:"Aromatizador Home Spray 250ml Premium Cheiro De Casa Limpa Cereja E Avel\u00e3",cat:"Mercado Livre",stock:15,min:0,sales:4,lot:0,cost:0.0,price:64.99,supplier:"Mercado Livre",mlId:"MLB6289300240"},
+  {id:3,sku:"20 - Cha",name:"Aromatizador De Ambiente Difusor De Aromas Com Vareta 100ml Cha Branco - Bambo",cat:"Mercado Livre",stock:1,min:0,sales:39,lot:0,cost:0.0,price:49.99,supplier:"Mercado Livre",mlId:"MLB6288753334"},
+  {id:4,sku:"22",name:"Cabo Controle Ps4 Usb V8 Carregador Com Filtro Carregar Pc",cat:"Mercado Livre",stock:479,min:0,sales:327,lot:0,cost:0.0,price:29.99,supplier:"Mercado Livre",mlId:"MLB5276857818",mlIdExtra:["MLB6233168570"]},
+  {id:5,sku:"31 - Verde",name:"Kit Utens\u00edlios De Cozinha Silicone 5 Pe\u00e7as Jogo De Cozinha \u2014 Verde",cat:"Mercado Livre",stock:18,min:0,sales:12,lot:0,cost:0.0,price:34.99,supplier:"Mercado Livre",mlId:"MLB5661215418"},
+  {id:6,sku:"31 - Preto",name:"Kit Utens\u00edlios De Cozinha Silicone 5 Pe\u00e7as Jogo De Cozinha \u2014 Preto",cat:"Mercado Livre",stock:0,min:0,sales:5,lot:0,cost:0.0,price:34.99,supplier:"Mercado Livre",mlId:"MLB5661215418"},
+  {id:7,sku:"31 - Azul",name:"Kit Utens\u00edlios De Cozinha Silicone 5 Pe\u00e7as Jogo De Cozinha \u2014 Azul",cat:"Mercado Livre",stock:16,min:0,sales:10,lot:0,cost:0.0,price:34.99,supplier:"Mercado Livre",mlId:"MLB5661215418"},
+  {id:8,sku:"31 - Rosa",name:"Kit Utens\u00edlios De Cozinha Silicone 5 Pe\u00e7as Jogo De Cozinha \u2014 Rosa",cat:"Mercado Livre",stock:5,min:0,sales:6,lot:0,cost:0.0,price:34.99,supplier:"Mercado Livre",mlId:"MLB5661215418"},
+  {id:9,sku:"31 - Vermelho",name:"Kit Utens\u00edlios De Cozinha Silicone 5 Pe\u00e7as Jogo De Cozinha \u2014 Vermelho",cat:"Mercado Livre",stock:0,min:0,sales:2,lot:0,cost:0.0,price:34.99,supplier:"Mercado Livre",mlId:"MLB5661215418"},
+  {id:10,sku:"33 - 5027",name:"Maquina Cortar Cabelo Profissional Sem Fio Acabamento Barba Prateado Bivolt",cat:"Mercado Livre",stock:23,min:0,sales:13,lot:0,cost:0.0,price:200.0,supplier:"Mercado Livre",mlId:"MLB4225277731",mlIdExtra:["MLB6233085286"]},
+  {id:11,sku:"4 - Fone Gamer X15",name:"Fone Bluetooth Gamer Pro Tws Jogos E-sports Academia Dual Preto",cat:"Mercado Livre",stock:363,min:0,sales:48,lot:0,cost:0.0,price:55.0,supplier:"Mercado Livre",mlId:"MLB4017082443",mlIdExtra:["MLB6233055454"]},
+  {id:12,sku:"8 - B",name:"Suporte Celular Carro Veicular Trava Fixa Forte Painel Vidro Preto",cat:"Mercado Livre",stock:116,min:0,sales:97,lot:0,cost:0.0,price:39.99,supplier:"Mercado Livre",mlId:"MLB3809787577",mlIdExtra:["MLB6233055740"]},
+  {id:13,sku:"21 - Cereja",name:"Vela Arom\u00e1tica Perfumada 100g Ambiente Relaxante Decorativa Cereja E Avel\u00e3 Lisa",cat:"Mercado Livre",stock:16,min:0,sales:18,lot:0,cost:0.0,price:50.0,supplier:"Mercado Livre",mlId:"MLB6232700766",mlIdExtra:["MLB4465217161"]},
+  {id:14,sku:"37 - Preto",name:"Suporte Notebook Dobr\u00e1vel Port\u00e1til Anti Derrapante De Mesa \u2014 Preto",cat:"Mercado Livre",stock:56,min:0,sales:77,lot:0,cost:0.0,price:34.99,supplier:"Mercado Livre",mlId:"MLB5782463516"},
+  {id:15,sku:"37 - Branco",name:"Suporte Notebook Dobr\u00e1vel Port\u00e1til Anti Derrapante De Mesa \u2014 Branco",cat:"Mercado Livre",stock:0,min:0,sales:27,lot:0,cost:0.0,price:34.99,supplier:"Mercado Livre",mlId:"MLB5782463516"},
+  {id:16,sku:"21 - Lavanda",name:"Vela Arom\u00e1tica Perfumada 100g Ambiente Relaxante Decorativa Lavanda Lisa",cat:"Mercado Livre",stock:39,min:0,sales:24,lot:0,cost:0.0,price:50.0,supplier:"Mercado Livre",mlId:"MLB6232700764",mlIdExtra:["MLB4465139497"]},
+  {id:17,sku:"50 - Lavanda",name:"Aromatizador Home Spray 250ml Premium Cheiro De Casa Limpa Lavanda",cat:"Mercado Livre",stock:16,min:0,sales:9,lot:0,cost:0.0,price:64.99,supplier:"Mercado Livre",mlId:"MLB6289300242"},
+  {id:18,sku:"41 - Azul-celeste",name:"Fone De Ouvido Bluetooth Headphone Sem Fio Over-ear Headset \u2014 Azul-celeste",cat:"Mercado Livre",stock:27,min:0,sales:90,lot:0,cost:0.0,price:69.99,supplier:"Mercado Livre",mlId:"MLB4507163408"},
+  {id:19,sku:"41 - Creme",name:"Fone De Ouvido Bluetooth Headphone Sem Fio Over-ear Headset \u2014 Creme",cat:"Mercado Livre",stock:0,min:0,sales:18,lot:0,cost:0.0,price:69.99,supplier:"Mercado Livre",mlId:"MLB4507163408"},
+  {id:20,sku:"41 - Rosa",name:"Fone De Ouvido Bluetooth Headphone Sem Fio Over-ear Headset \u2014 Rosa",cat:"Mercado Livre",stock:0,min:0,sales:18,lot:0,cost:0.0,price:69.99,supplier:"Mercado Livre",mlId:"MLB4507163408"},
+  {id:21,sku:"41 - Lil\u00e1s",name:"Fone De Ouvido Bluetooth Headphone Sem Fio Over-ear Headset \u2014 Lil\u00e1s",cat:"Mercado Livre",stock:0,min:0,sales:18,lot:0,cost:0.0,price:69.99,supplier:"Mercado Livre",mlId:"MLB4507163408"},
+  {id:22,sku:"41 - Preto",name:"Fone De Ouvido Bluetooth Headphone Sem Fio Over-ear Headset \u2014 Preto",cat:"Mercado Livre",stock:0,min:0,sales:18,lot:0,cost:0.0,price:69.99,supplier:"Mercado Livre",mlId:"MLB4507163408"},
+  {id:23,sku:"32 - Preto",name:"Fone De Ouvido Headphone Bluetooth Sem Fio Over-ear Headset \u2014 Preto",cat:"Mercado Livre",stock:48,min:0,sales:17,lot:0,cost:0.0,price:70.0,supplier:"Mercado Livre",mlId:"MLB4188244249"},
+  {id:24,sku:"32 - Azul",name:"Fone De Ouvido Headphone Bluetooth Sem Fio Over-ear Headset \u2014 Azul",cat:"Mercado Livre",stock:15,min:0,sales:6,lot:0,cost:0.0,price:70.0,supplier:"Mercado Livre",mlId:"MLB4188244249"},
+  {id:25,sku:"32 - Vermelho",name:"Fone De Ouvido Headphone Bluetooth Sem Fio Over-ear Headset \u2014 Vermelho",cat:"Mercado Livre",stock:10,min:0,sales:7,lot:0,cost:0.0,price:70.0,supplier:"Mercado Livre",mlId:"MLB4188244249"},
+  {id:26,sku:"32 - Branco",name:"Fone De Ouvido Headphone Bluetooth Sem Fio Over-ear Headset \u2014 Branco",cat:"Mercado Livre",stock:9,min:0,sales:6,lot:0,cost:0.0,price:70.0,supplier:"Mercado Livre",mlId:"MLB4188244249"},
+  {id:27,sku:"32 - Cinza",name:"Fone De Ouvido Headphone Bluetooth Sem Fio Over-ear Headset \u2014 Cinza",cat:"Mercado Livre",stock:18,min:0,sales:12,lot:0,cost:0.0,price:70.0,supplier:"Mercado Livre",mlId:"MLB4188244249"},
+  {id:28,sku:"35 - 600ml - Lil\u00e1s",name:"Garrafa T\u00e9rmica Agua Inox 600ml Borracha Silicone Refor\u00e7ada \u2014 Lil\u00e1s",cat:"Mercado Livre",stock:151,min:0,sales:42,lot:0,cost:0.0,price:75.0,supplier:"Mercado Livre",mlId:"MLB4225923341"},
+  {id:29,sku:"35 - 600ml - Pink",name:"Garrafa T\u00e9rmica Agua Inox 600ml Borracha Silicone Refor\u00e7ada \u2014 Pink",cat:"Mercado Livre",stock:78,min:0,sales:16,lot:0,cost:0.0,price:75.0,supplier:"Mercado Livre",mlId:"MLB4225923341"},
+  {id:30,sku:"35 - 600ml - Preta",name:"Garrafa T\u00e9rmica Agua Inox 600ml Borracha Silicone Refor\u00e7ada \u2014 Preta",cat:"Mercado Livre",stock:59,min:0,sales:84,lot:0,cost:0.0,price:75.0,supplier:"Mercado Livre",mlId:"MLB4225923341"},
+  {id:31,sku:"35 - 600ml - Azul-marinho",name:"Garrafa T\u00e9rmica Agua Inox 600ml Borracha Silicone Refor\u00e7ada \u2014 Azul-marinho",cat:"Mercado Livre",stock:38,min:0,sales:37,lot:0,cost:0.0,price:75.0,supplier:"Mercado Livre",mlId:"MLB4225923341"},
+  {id:32,sku:"35 - 600ml - Rosa-claro",name:"Garrafa T\u00e9rmica Agua Inox 600ml Borracha Silicone Refor\u00e7ada \u2014 Rosa-claro",cat:"Mercado Livre",stock:97,min:0,sales:38,lot:0,cost:0.0,price:75.0,supplier:"Mercado Livre",mlId:"MLB4225923341"},
+  {id:33,sku:"35 - 600ml - Roxa",name:"Garrafa T\u00e9rmica Agua Inox 600ml Borracha Silicone Refor\u00e7ada \u2014 Roxa",cat:"Mercado Livre",stock:108,min:0,sales:19,lot:0,cost:0.0,price:75.0,supplier:"Mercado Livre",mlId:"MLB4225923341"},
+  {id:34,sku:"35 - 600ml - Azul Beb\u00ea",name:"Garrafa T\u00e9rmica Agua Inox 600ml Borracha Silicone Refor\u00e7ada \u2014 Azul Beb\u00ea",cat:"Mercado Livre",stock:54,min:0,sales:21,lot:0,cost:0.0,price:75.0,supplier:"Mercado Livre",mlId:"MLB4225923341"},
+  {id:35,sku:"35 - 600ml - Verde-lim\u00e3o",name:"Garrafa T\u00e9rmica Agua Inox 600ml Borracha Silicone Refor\u00e7ada \u2014 Verde-lim\u00e3o",cat:"Mercado Livre",stock:55,min:0,sales:25,lot:0,cost:0.0,price:75.0,supplier:"Mercado Livre",mlId:"MLB4225923341"},
+  {id:36,sku:"35 - 600ml - Bege",name:"Garrafa T\u00e9rmica Agua Inox 600ml Borracha Silicone Refor\u00e7ada \u2014 Bege",cat:"Mercado Livre",stock:19,min:0,sales:57,lot:0,cost:0.0,price:75.0,supplier:"Mercado Livre",mlId:"MLB4225923341"},
+  {id:37,sku:"35 - 600ml - Azul",name:"Garrafa T\u00e9rmica Agua Inox 600ml Borracha Silicone Refor\u00e7ada \u2014 Azul",cat:"Mercado Livre",stock:0,min:0,sales:24,lot:0,cost:0.0,price:75.0,supplier:"Mercado Livre",mlId:"MLB4225923341"},
+  {id:38,sku:"35 - 600ml - Azul-celeste",name:"Garrafa T\u00e9rmica Agua Inox 600ml Borracha Silicone Refor\u00e7ada \u2014 Azul-celeste",cat:"Mercado Livre",stock:0,min:0,sales:24,lot:0,cost:0.0,price:75.0,supplier:"Mercado Livre",mlId:"MLB4225923341"},
+  {id:39,sku:"35 - 600ml - Branco",name:"Garrafa T\u00e9rmica Agua Inox 600ml Borracha Silicone Refor\u00e7ada \u2014 Branco",cat:"Mercado Livre",stock:0,min:0,sales:24,lot:0,cost:0.0,price:75.0,supplier:"Mercado Livre",mlId:"MLB4225923341"},
+  {id:40,sku:"35 - 600ml - Cinza-escuro",name:"Garrafa T\u00e9rmica Agua Inox 600ml Borracha Silicone Refor\u00e7ada \u2014 Cinza-escuro",cat:"Mercado Livre",stock:0,min:0,sales:24,lot:0,cost:0.0,price:75.0,supplier:"Mercado Livre",mlId:"MLB4225923341"},
+  {id:41,sku:"35 - 600ml - Verde-musgo",name:"Garrafa T\u00e9rmica Agua Inox 600ml Borracha Silicone Refor\u00e7ada \u2014 Verde-musgo",cat:"Mercado Livre",stock:0,min:0,sales:24,lot:0,cost:0.0,price:75.0,supplier:"Mercado Livre",mlId:"MLB4225923341"},
+  {id:42,sku:"20 - Capim",name:"Aromatizador De Ambiente Difusor De Aromas Com Vareta 100ml Capim Lim\u00e3o",cat:"Mercado Livre",stock:53,min:0,sales:38,lot:0,cost:0.0,price:49.99,supplier:"Mercado Livre",mlId:"MLB6288753330"},
+  {id:43,sku:"10",name:"Fone De Ouvido Bluetooth 5.3 Tws Gancho Esportivo Corrida Preto",cat:"Mercado Livre",stock:13,min:0,sales:6,lot:0,cost:0.0,price:149.99,supplier:"Mercado Livre",mlId:"MLB5489779594",mlIdExtra:["MLB6232952312"]},
+  {id:44,sku:"50 - Cha Branco Bamboo",name:"Aromatizador Home Spray 250ml Premium Cheiro De Casa Limpa Ch\u00e1 Branco Bamboo",cat:"Mercado Livre",stock:16,min:0,sales:10,lot:0,cost:0.0,price:64.99,supplier:"Mercado Livre",mlId:"MLB6289300246"},
+  {id:45,sku:"26 - Branco",name:"Kit Teclado E Mouse Sem Fio Usb Ultra Slim Wireless 2.4ghz \u2014 Branco / Branco",cat:"Mercado Livre",stock:417,min:0,sales:285,lot:0,cost:0.0,price:77.99,supplier:"Mercado Livre",mlId:"MLB4168372465"},
+  {id:46,sku:"26 - Preto",name:"Kit Teclado E Mouse Sem Fio Usb Ultra Slim Wireless 2.4ghz \u2014 Preto / Preto",cat:"Mercado Livre",stock:179,min:0,sales:255,lot:0,cost:0.0,price:77.99,supplier:"Mercado Livre",mlId:"MLB4168372465"},
+  {id:47,sku:"36 - Rosa",name:"Garrafa T\u00e9rmica Agua Inox 350ml Al\u00e7a E Tampa Com Canudo \u2014 Rosa",cat:"Mercado Livre",stock:96,min:0,sales:36,lot:0,cost:0.0,price:74.99,supplier:"Mercado Livre",mlId:"MLB4243338551"},
+  {id:48,sku:"36 - Preto",name:"Garrafa T\u00e9rmica Agua Inox 350ml Al\u00e7a E Tampa Com Canudo \u2014 Preto",cat:"Mercado Livre",stock:9,min:0,sales:146,lot:0,cost:0.0,price:74.99,supplier:"Mercado Livre",mlId:"MLB4243338551"},
+  {id:49,sku:"36 - Verde-claro",name:"Garrafa T\u00e9rmica Agua Inox 350ml Al\u00e7a E Tampa Com Canudo \u2014 Verde-claro",cat:"Mercado Livre",stock:52,min:0,sales:25,lot:0,cost:0.0,price:74.99,supplier:"Mercado Livre",mlId:"MLB4243338551"},
+  {id:50,sku:"36 - Azul-marinho",name:"Garrafa T\u00e9rmica Agua Inox 350ml Al\u00e7a E Tampa Com Canudo \u2014 Azul-marinho",cat:"Mercado Livre",stock:0,min:0,sales:30,lot:0,cost:0.0,price:74.99,supplier:"Mercado Livre",mlId:"MLB4243338551"},
+  {id:51,sku:"36 - Azul-claro",name:"Garrafa T\u00e9rmica Agua Inox 350ml Al\u00e7a E Tampa Com Canudo \u2014 Azul-claro",cat:"Mercado Livre",stock:43,min:0,sales:50,lot:0,cost:0.0,price:74.99,supplier:"Mercado Livre",mlId:"MLB4243338551"},
+  {id:52,sku:"36 - Roxo",name:"Garrafa T\u00e9rmica Agua Inox 350ml Al\u00e7a E Tampa Com Canudo \u2014 Roxo",cat:"Mercado Livre",stock:117,min:0,sales:21,lot:0,cost:0.0,price:74.99,supplier:"Mercado Livre",mlId:"MLB4243338551"},
+  {id:53,sku:"36 - Lil\u00e1s",name:"Garrafa T\u00e9rmica Agua Inox 350ml Al\u00e7a E Tampa Com Canudo \u2014 Lil\u00e1s",cat:"Mercado Livre",stock:70,min:0,sales:40,lot:0,cost:0.0,price:74.99,supplier:"Mercado Livre",mlId:"MLB4243338551"},
+  {id:54,sku:"36 - Pink",name:"Garrafa T\u00e9rmica Agua Inox 350ml Al\u00e7a E Tampa Com Canudo \u2014 Pink",cat:"Mercado Livre",stock:66,min:0,sales:15,lot:0,cost:0.0,price:74.99,supplier:"Mercado Livre",mlId:"MLB4243338551"},
+  {id:55,sku:"36 - Bege",name:"Garrafa T\u00e9rmica Agua Inox 350ml Al\u00e7a E Tampa Com Canudo \u2014 Bege",cat:"Mercado Livre",stock:12,min:0,sales:24,lot:0,cost:0.0,price:74.99,supplier:"Mercado Livre",mlId:"MLB4243338551"},
+  {id:56,sku:"13",name:"Fone De Ouvido Bluetooth Tws Pro Sem Fio Visor Premium Preto Preto",cat:"Mercado Livre",stock:338,min:0,sales:69,lot:0,cost:0.0,price:49.99,supplier:"Mercado Livre",mlId:"MLB6232935556",mlIdExtra:["MLB3584790341"]},
+  {id:57,sku:"38 - 1L - Preto",name:"Garrafa T\u00e9rmica Agua Inox 1000ml Borracha Silicone Refor\u00e7ada Preto",cat:"Mercado Livre",stock:9,min:0,sales:36,lot:0,cost:0.0,price:75.0,supplier:"Mercado Livre",mlId:"MLB4470685419"},
+  {id:58,sku:"38 - 1L - Azul-marinho",name:"Garrafa T\u00e9rmica Agua Inox 1000ml Borracha Silicone Refor\u00e7ada Azul-marinho",cat:"Mercado Livre",stock:4,min:0,sales:15,lot:0,cost:0.0,price:75.0,supplier:"Mercado Livre",mlId:"MLB4470737301"},
+  {id:59,sku:"38 - 1L - Lil\u00e1s",name:"Garrafa T\u00e9rmica Agua Inox 1000ml Borracha Silicone Refor\u00e7ada Lil\u00e1s",cat:"Mercado Livre",stock:7,min:0,sales:21,lot:0,cost:0.0,price:75.0,supplier:"Mercado Livre",mlId:"MLB6244801698"},
+  {id:60,sku:"27 - Preto",name:"Fone De Ouvido Headphone Bluetooth Est\u00e9reo Sem Fio Headset \u2014 Preto",cat:"Mercado Livre",stock:65,min:0,sales:76,lot:0,cost:0.0,price:121.14,supplier:"Mercado Livre",mlId:"MLB3899328485"},
+  {id:61,sku:"27 - Bege",name:"Fone De Ouvido Headphone Bluetooth Est\u00e9reo Sem Fio Headset \u2014 Bege",cat:"Mercado Livre",stock:7,min:0,sales:25,lot:0,cost:0.0,price:121.14,supplier:"Mercado Livre",mlId:"MLB3899328485"},
+  {id:62,sku:"27 - Branco",name:"Fone De Ouvido Headphone Bluetooth Est\u00e9reo Sem Fio Headset \u2014 Branco",cat:"Mercado Livre",stock:6,min:0,sales:14,lot:0,cost:0.0,price:121.14,supplier:"Mercado Livre",mlId:"MLB3899328485"},
+  {id:63,sku:"27 - Azul",name:"Fone De Ouvido Headphone Bluetooth Est\u00e9reo Sem Fio Headset \u2014 Azul-celeste",cat:"Mercado Livre",stock:1,min:0,sales:9,lot:0,cost:0.0,price:121.14,supplier:"Mercado Livre",mlId:"MLB3899328485"},
+  {id:64,sku:"24",name:"Cabo Vga 1,5 Metros Para Monitor Macho Lcd Pc C\u00e2meras",cat:"Mercado Livre",stock:93,min:0,sales:78,lot:0,cost:0.0,price:19.0,supplier:"Mercado Livre",mlId:"MLB6248408732",mlIdExtra:["MLB6257052198"]},
+  {id:65,sku:"23 - PRETO",name:"Fone De Ouvido Bluetooth 5.4 Headphone Estereo Sem Fio \u2014 Preto",cat:"Mercado Livre",stock:21,min:0,sales:504,lot:0,cost:0.0,price:69.8,supplier:"Mercado Livre",mlId:"MLB6125324088"},
+  {id:66,sku:"23 - Azul Claro",name:"Fone De Ouvido Bluetooth 5.4 Headphone Estereo Sem Fio \u2014 Azul-claro",cat:"Mercado Livre",stock:0,min:0,sales:2,lot:0,cost:0.0,price:69.8,supplier:"Mercado Livre",mlId:"MLB6125324088"},
+  {id:67,sku:"23 - CREME",name:"Fone De Ouvido Bluetooth 5.4 Headphone Estereo Sem Fio \u2014 Creme",cat:"Mercado Livre",stock:63,min:0,sales:306,lot:0,cost:0.0,price:69.8,supplier:"Mercado Livre",mlId:"MLB6125324088"},
+  {id:68,sku:"23 - LILAS",name:"Fone De Ouvido Bluetooth 5.4 Headphone Estereo Sem Fio \u2014 Lil\u00e1s",cat:"Mercado Livre",stock:0,min:0,sales:1,lot:0,cost:0.0,price:69.8,supplier:"Mercado Livre",mlId:"MLB6125324088"},
+  {id:69,sku:"23 - ROSA",name:"Fone De Ouvido Bluetooth 5.4 Headphone Estereo Sem Fio \u2014 Rosa",cat:"Mercado Livre",stock:0,min:0,sales:163,lot:0,cost:0.0,price:69.8,supplier:"Mercado Livre",mlId:"MLB6125324088"},
+  {id:70,sku:"38 - 1L - Rosa",name:"Garrafa T\u00e9rmica Agua Inox 1000ml Borracha Silicone Refor\u00e7ada Rosa",cat:"Mercado Livre",stock:6,min:0,sales:27,lot:0,cost:0.0,price:75.0,supplier:"Mercado Livre",mlId:"MLB6244891844"},
+  {id:71,sku:"38 - 1L - Pink",name:"Garrafa T\u00e9rmica Agua Inox 1000ml Borracha Silicone Refor\u00e7ada Pink",cat:"Mercado Livre",stock:13,min:0,sales:10,lot:0,cost:0.0,price:75.0,supplier:"Mercado Livre",mlId:"MLB4470607489"},
+  {id:72,sku:"38 - 1L - Azul-claro",name:"Garrafa T\u00e9rmica Agua Inox 1000ml Borracha Silicone Refor\u00e7ada Azul-claro",cat:"Mercado Livre",stock:17,min:0,sales:4,lot:0,cost:0.0,price:75.0,supplier:"Mercado Livre",mlId:"MLB4470568607"},
+  {id:73,sku:"38 - 1L - Roxo",name:"Garrafa T\u00e9rmica Agua Inox 1000ml Borracha Silicone Refor\u00e7ada Roxo",cat:"Mercado Livre",stock:6,min:0,sales:23,lot:0,cost:0.0,price:75.0,supplier:"Mercado Livre",mlId:"MLB4470555699"},
+  {id:74,sku:"28 - Preto",name:"Mini Mixer Misturador Bebidas Port\u00e1til Eletrico Recarreg\u00e1vel \u2014 Preto",cat:"Mercado Livre",stock:30,min:0,sales:9,lot:0,cost:0.0,price:54.99,supplier:"Mercado Livre",mlId:"MLB5176864870"},
+  {id:75,sku:"28 - Branco",name:"Mini Mixer Misturador Bebidas Port\u00e1til Eletrico Recarreg\u00e1vel \u2014 Branco",cat:"Mercado Livre",stock:10,min:0,sales:8,lot:0,cost:0.0,price:54.99,supplier:"Mercado Livre",mlId:"MLB5176864870"},
+  {id:76,sku:"38 - 1L - Verde Lim\u00e3o",name:"Garrafa T\u00e9rmica Agua Inox 1000ml Borracha Silicone Refor\u00e7ada Verde-lim\u00e3o",cat:"Mercado Livre",stock:20,min:0,sales:4,lot:0,cost:0.0,price:75.0,supplier:"Mercado Livre",mlId:"MLB6248401500"}
 ];
-let nextId=11,editingId=null,activeCardFilter=null,selectedSkus=new Set(),activeNcCard=null;
+let nextId=77,editingId=null,activeCardFilter=null,selectedSkus=new Set(),activeNcCard=null;
 let parsedRows=[],parsedHeaders=[],uploadMap={};
 let cfg={warn:14,crit:7,target:30,safety:2,lead:8,mode:'30'};
 
@@ -1877,6 +1944,18 @@ function toggleSidebar(){
 
 
 /* ===== EXPORTAR PLANILHA DE SKUs ===== */
+
+function saveAllToFirebase(){
+  if(!window.fbSave){showToast('Firebase não conectado.');return;}
+  if(!confirm('Salvar todos os '+products.length+' produtos no Firebase? Isso vai SUBSTITUIR os dados atuais.'))return;
+  showToast('Salvando '+products.length+' produtos no Firebase…');
+  window.fbSave(products).then(function(){
+    showToast('✓ '+products.length+' produtos salvos no Firebase! ☁️');
+  }).catch(function(e){
+    showToast('Erro: '+e.message);
+  });
+}
+
 function exportSkuSheet(){
   if(!window.XLSX){showToast('Aguarde carregar a página e tente novamente.');return;}
   var wb=window.XLSX.utils.book_new();
@@ -2005,6 +2084,13 @@ async function fbBoot(){
         products.push(p);
       });
       nextId=Math.max.apply(null,products.map(function(p){return isNaN(Number(p.id))?0:Number(p.id);})) + 1;
+    } else {
+      // Firebase vazio — salva os produtos da planilha automaticamente
+      if(typeof window.fbSave==='function' && products.length>0){
+        console.log('Firebase vazio. Salvando '+products.length+' produtos...');
+        await window.fbSave(products);
+        console.log('Produtos salvos no Firebase!');
+      }
     }
     // Load config
     var cd=await getDoc(doc(_db,"config","main"));
