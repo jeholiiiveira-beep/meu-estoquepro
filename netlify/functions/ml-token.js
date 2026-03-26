@@ -1,29 +1,27 @@
-// netlify/functions/ml-token.js
-// Troca o código OAuth do Mercado Livre por access_token
-// Roda no servidor (Netlify) — evita bloqueio CORS do navegador
+// functions/ml-token.js
+// Cloudflare Pages Function — troca código OAuth por token do ML
 
-const ML_APP_ID   = "4538292403150286";
-const ML_SECRET   = process.env.ML_CLIENT_SECRET;
-const ML_REDIRECT = "https://meu-estoquepro.netlify.app";
-
-exports.handler = async function(event, context) {
-  // Permite apenas POST
-  if (event.httpMethod !== "POST") {
-    return { statusCode: 405, body: "Method Not Allowed" };
-  }
-
-  // CORS headers — permite chamadas do próprio site
+export const onRequestPost = async (context) => {
   const headers = {
     "Access-Control-Allow-Origin": "*",
-    "Access-Control-Allow-Headers": "Content-Type",
-    "Content-Type": "application/json"
+    "Content-Type": "application/json",
   };
 
   try {
-    const body = JSON.parse(event.body || "{}");
+    const body = await context.request.json();
     const { code, refresh_token, grant_type } = body;
 
-    // Monta o payload para a API do ML
+    const ML_APP_ID   = "4538292403150286";
+    const ML_SECRET   = context.env.ML_CLIENT_SECRET;
+    const ML_REDIRECT = "https://meu-estoquepro.pages.dev";
+
+    if (!ML_SECRET) {
+      return new Response(
+        JSON.stringify({ error: "ML_CLIENT_SECRET não configurado." }),
+        { status: 500, headers }
+      );
+    }
+
     const params = new URLSearchParams();
     params.append("client_id", ML_APP_ID);
     params.append("client_secret", ML_SECRET);
@@ -37,38 +35,51 @@ exports.handler = async function(event, context) {
       params.append("redirect_uri", ML_REDIRECT);
     }
 
-    // Chama a API do Mercado Livre (sem restrição CORS — roda no servidor)
-    const response = await fetch("https://api.mercadolibre.com/oauth/token", {
+    const resp = await fetch("https://api.mercadolibre.com/oauth/token", {
       method: "POST",
       headers: {
         "Content-Type": "application/x-www-form-urlencoded",
-        "Accept": "application/json"
+        "Accept": "application/json",
       },
-      body: params.toString()
+      body: params.toString(),
     });
 
-    const data = await response.json();
+    const data = await resp.json();
 
-    if (!response.ok) {
-      return {
-        statusCode: response.status,
-        headers,
-        body: JSON.stringify({ error: data.message || "Erro ao obter token", detail: data })
-      };
+    if (!resp.ok) {
+      return new Response(
+        JSON.stringify({ error: data.message || "Erro ao obter token", detail: data }),
+        { status: resp.status, headers }
+      );
     }
 
-    return {
-      statusCode: 200,
-      headers,
-      body: JSON.stringify(data)
-    };
+    return new Response(JSON.stringify(data), { status: 200, headers });
 
   } catch (err) {
-    console.error("ml-token error:", err);
-    return {
-      statusCode: 500,
-      headers,
-      body: JSON.stringify({ error: err.message })
-    };
+    return new Response(
+      JSON.stringify({ error: err.message }),
+      { status: 500, headers }
+    );
   }
+};
+
+export const onRequestOptions = async () => {
+  return new Response(null, {
+    status: 204,
+    headers: {
+      "Access-Control-Allow-Origin": "*",
+      "Access-Control-Allow-Methods": "POST, OPTIONS",
+      "Access-Control-Allow-Headers": "Content-Type",
+    },
+  });
+};
+
+// Catch all other methods
+export const onRequest = async (context) => {
+  if (context.request.method === "POST") return onRequestPost(context);
+  if (context.request.method === "OPTIONS") return onRequestOptions();
+  return new Response(JSON.stringify({ error: "Method not allowed" }), {
+    status: 405,
+    headers: { "Content-Type": "application/json" }
+  });
 };
