@@ -631,7 +631,6 @@ tbody tr.row-alert td{background:rgba(252,235,235,.18)}
           <div class="import-hero-title">Como funciona</div>
           <div class="import-hero-sub">1. Baixe a planilha modelo — já vem com as colunas certas e exemplos.<br>2. Preencha com os dados dos seus produtos.<br>3. Envie o arquivo aqui. O sistema importa tudo automaticamente.</div>
           <button class="btn btn-green" onclick="downloadTemplate()"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 11v2a1 1 0 001 1h10a1 1 0 001-1v-2M8 2v8M5 7l3 3 3-3"/></svg>Baixar planilha modelo (.xlsx)</button>
-          <button class="btn" onclick="exportCostSheet()" style="background:#1a3a5c;color:#fff;border-color:#1a3a5c" title="Exporta planilha com SKU, Nome e Custo atual de todos os produtos para você preencher e reimportar"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" style="width:14px;height:14px"><path d="M2 11v2a1 1 0 001 1h10a1 1 0 001-1v-2M8 2v8M5 7l3 3 3-3"/></svg>Exportar Custos (preencher e reimportar)</button>
         </div>
       </div>
       <div class="template-card">
@@ -1284,20 +1283,6 @@ function downloadTemplate(){
   XLSX.utils.book_append_sheet(wb,ws,'Estoque');
   XLSX.writeFile(wb,'modelo_estoquepro.xlsx');
 }
-
-function exportCostSheet(){
-  if(!products||products.length===0){showToast('Nenhum produto carregado.');return;}
-  const wb=XLSX.utils.book_new();
-  const rows=[['SKU','Nome','Custo_Atual','Custo_Novo']];
-  products.forEach(p=>rows.push([p.sku,p.name,p.cost||0,'']));
-  const ws=XLSX.utils.aoa_to_sheet(rows);
-  ws['!cols']=[{wch:20},{wch:45},{wch:14},{wch:14}];
-  // Destacar cabeçalho visualmente
-  XLSX.utils.book_append_sheet(wb,ws,'Custos');
-  const today=new Date().toISOString().split('T')[0];
-  XLSX.writeFile(wb,'custos_'+today+'.xlsx');
-  showToast('Planilha exportada! Preencha a coluna Custo_Novo e reimporte.');
-}
 function handleUploadDrop(e){e.preventDefault();document.getElementById('uploadZone').classList.remove('drag');const f=e.dataTransfer.files[0];if(f)processUploadFile(f);}
 function handleUploadFile(f){if(f)processUploadFile(f);}
 function processUploadFile(file){
@@ -1319,7 +1304,7 @@ function processUploadFile(file){
 }
 const FIELDS=[{key:'sku',label:'SKU',req:true},{key:'name',label:'Nome',req:true},{key:'cat',label:'Categoria'},{key:'stock',label:'Estoque'},{key:'min',label:'Mínimo'},{key:'sales',label:'Vendas 30d'},{key:'lot',label:'Lote'},{key:'cost',label:'Custo'},{key:'price',label:'Preço venda'},{key:'supplier',label:'Fornecedor'}];
 function autoMap(headers){
-  const al={sku:['sku','cod','código','code','ref'],name:['nome','name','produto','descricao'],cat:['categoria','category','cat'],stock:['estoque','stock','qty','quantidade'],min:['minimo','mínimo','min'],sales:['vendas','sales','vendas30'],lot:['lote','lot'],cost:['custo','cost','custo_novo','custonovo'],price:['preco','preço','price'],supplier:['fornecedor','supplier']};
+  const al={sku:['sku','cod','código','code','ref'],name:['nome','name','produto','descricao'],cat:['categoria','category','cat'],stock:['estoque','stock','qty','quantidade'],min:['minimo','mínimo','min'],sales:['vendas','sales','vendas30'],lot:['lote','lot'],cost:['custo','cost'],price:['preco','preço','price'],supplier:['fornecedor','supplier']};
   const map={};
   FIELDS.forEach(f=>{const found=headers.findIndex(h=>{const hn=h.toLowerCase().replace(/[^a-z0-9]/g,'');return(al[f.key]||[]).some(a=>hn===a||hn.includes(a));});map[f.key]=found>=0?found:-1;});
   return map;
@@ -1339,34 +1324,17 @@ function confirmUpload(){
   const conflict=document.querySelector('input[name="uconflict"]:checked').value;
   let added=0,updated=0,skipped=0,errors=0;
   parsedRows.forEach(row=>{
-    const si=uploadMap['sku'];
-    if(si<0){errors++;return;}
-    const sku=String(row[si]||'').trim();
-    if(!sku){errors++;return;}
+    const si=uploadMap['sku'],ni=uploadMap['name'];
+    if(si<0||ni<0){errors++;return;}
+    const sku=String(row[si]||'').trim(),name=String(row[ni]||'').trim();
+    if(!sku||!name){errors++;return;}
     const get=k=>{const i=uploadMap[k];return i>=0?row[i]:undefined;};
-    const num=k=>{const v=get(k);return v!==undefined&&String(v).trim()!==''?parseFloat(String(v).replace(',','.'))||0:undefined;};
-    const str=k=>{const v=get(k);return v!==undefined&&String(v).trim()!==''?String(v).trim():undefined;};
-    // Monta objeto apenas com os campos presentes na planilha (não zera o que não veio)
-    const d={};
-    if(str('sku')!==undefined)d.sku=sku;
-    if(str('name')!==undefined)d.name=str('name');
-    if(str('cat')!==undefined)d.cat=str('cat');
-    if(num('stock')!==undefined)d.stock=num('stock');
-    if(num('min')!==undefined)d.min=num('min');
-    if(num('sales')!==undefined)d.sales=num('sales');
-    if(num('lot')!==undefined)d.lot=num('lot');
-    if(num('cost')!==undefined)d.cost=num('cost');
-    if(num('price')!==undefined)d.price=num('price');
-    if(str('supplier')!==undefined)d.supplier=str('supplier');
+    const num=k=>{const v=get(k);return v!==undefined&&v!==''?parseFloat(String(v).replace(',','.'))||0:undefined;};
+    const str=k=>{const v=get(k);return v!==undefined?String(v).trim():undefined;};
+    const d={sku,name,cat:str('cat')||'Geral',stock:num('stock')??0,min:num('min')??0,sales:num('sales')??0,lot:num('lot')??0,cost:num('cost')??0,price:num('price')??0,supplier:str('supplier')||''};
     const ei=products.findIndex(p=>p.sku===sku);
-    if(ei>=0){
-      if(conflict==='update'){products[ei]={...products[ei],...d};updated++;}
-      else if(conflict==='add'){const base={id:nextId++,sku,name:d.name||sku,cat:d.cat||'Geral',stock:0,min:0,sales:0,lot:0,cost:0,price:0,supplier:''};products.push({...base,...d});added++;}
-      else skipped++;
-    } else {
-      const base={id:nextId++,sku,name:d.name||sku,cat:d.cat||'Geral',stock:0,min:0,sales:0,lot:0,cost:0,price:0,supplier:''};
-      products.push({...base,...d});added++;
-    }
+    if(ei>=0){if(conflict==='update'){products[ei]={...products[ei],...d};updated++;}else if(conflict==='add'){products.push({id:nextId++,...d});added++;}else skipped++;}
+    else{products.push({id:nextId++,...d});added++;}
   });
   document.getElementById('importProgress').classList.remove('visible');
   document.getElementById('uploadZone').style.display='';
@@ -1751,10 +1719,13 @@ async function mlSync(){
 
     // Monta índice dos produtos ML existentes por mlId+variationId para recuperar campos editados
     var existingMLMap={};
+    var existingByName={}; // fallback: busca por nome quando mlId mudou (ex: troca de anúncio)
     products.forEach(function(p){
       if(p.mlId){
         var key=p.mlId+(p.mlVariationId?'_'+p.mlVariationId:'');
         existingMLMap[key]=p;
+        // índice por nome — só guarda o primeiro encontrado (evita sobrescrever com duplicatas)
+        if(p.name && !existingByName[p.name]) existingByName[p.name]=p;
       }
     });
 
@@ -1824,9 +1795,9 @@ async function mlSync(){
             varSales=Math.round(itemSales/item.variations.length);
           }
 
-          // Preserva edições manuais se o produto já existia
+          // Preserva edições manuais se o produto já existia (por mlId ou, se mudou, por nome)
           var existKey=item.id+'_'+variation.id;
-          var existing=existingMLMap[existKey];
+          var existing=existingMLMap[existKey]||existingByName[productName]||null;
           products.push({
             id:existing?existing.id:nextId++,
             sku:SKU_MAP[productName]?SKU_MAP[productName]:varSku,
@@ -1857,9 +1828,9 @@ async function mlSync(){
         // ✅ SKU_MAP tem prioridade máxima — substitui qualquer valor do ML
         if(SKU_MAP[item.title]) sku=SKU_MAP[item.title];
 
-        // Preserva edições manuais se o produto já existia
+        // Preserva edições manuais se o produto já existia (por mlId ou, se mudou, por nome)
         var existKeySingle=item.id;
-        var existingSingle=existingMLMap[existKeySingle];
+        var existingSingle=existingMLMap[existKeySingle]||existingByName[item.title]||null;
         products.push({
           id:existingSingle?existingSingle.id:nextId++,
           sku:SKU_MAP[item.title]?SKU_MAP[item.title]:String(sku),
