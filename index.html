@@ -1800,7 +1800,7 @@ async function mlSync(){
           var existing=existingMLMap[existKey]||existingByName[productName]||null;
           products.push({
             id:existing?existing.id:nextId++,
-            sku:SKU_MAP[productName]?SKU_MAP[productName]:varSku,
+            sku:SKU_MAP[productName]?SKU_MAP[productName]:(existing&&existing.sku?existing.sku:varSku),
             name:productName,
             cat:existing?existing.cat:'Mercado Livre',
             stock:variation.available_quantity||0,
@@ -1833,7 +1833,7 @@ async function mlSync(){
         var existingSingle=existingMLMap[existKeySingle]||existingByName[item.title]||null;
         products.push({
           id:existingSingle?existingSingle.id:nextId++,
-          sku:SKU_MAP[item.title]?SKU_MAP[item.title]:String(sku),
+          sku:SKU_MAP[item.title]?SKU_MAP[item.title]:(existingSingle&&existingSingle.sku?existingSingle.sku:String(sku)),
           name:item.title,
           cat:existingSingle?existingSingle.cat:'Mercado Livre',
           stock:item.available_quantity||0,
