@@ -621,6 +621,74 @@ tbody tr.row-alert td{background:rgba(252,235,235,.18)}
       </table></div></div>
     </div>
 
+    <!-- CURVA ABC -->
+    <div class="page" id="page-abc">
+      <div class="page-title">Curva ABC</div>
+      <div class="page-sub">Classificação de produtos por representatividade de receita</div>
+      <div class="fin-summary" id="abcCards" style="margin-bottom:1.5rem"></div>
+      <div style="display:flex;align-items:center;gap:12px;margin-bottom:1rem;flex-wrap:wrap">
+        <select id="abc-cat" onchange="renderABC()" style="padding:8px 11px;border:1px solid var(--border-md);border-radius:var(--radius);background:var(--bg-primary);color:var(--text-primary);font-size:13px;font-family:inherit">
+          <option value="">Todas as categorias</option>
+        </select>
+        <select id="abc-sort" onchange="renderABC()" style="padding:8px 11px;border:1px solid var(--border-md);border-radius:var(--radius);background:var(--bg-primary);color:var(--text-primary);font-size:13px;font-family:inherit">
+          <option value="receita">Ordenar por Receita</option>
+          <option value="vendas">Ordenar por Vendas</option>
+          <option value="nome">Ordenar por Nome</option>
+        </select>
+        <button class="btn" onclick="exportAbcCSV()" style="margin-left:auto"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" style="width:14px;height:14px"><path d="M2 11v2a1 1 0 001 1h10a1 1 0 001-1v-2M8 2v8M5 7l3 3 3-3"/></svg> Exportar CSV</button>
+      </div>
+      <div class="table-wrap">
+        <table class="table" id="abcTable">
+          <thead><tr>
+            <th style="width:60px">Classe</th>
+            <th style="width:100px">SKU</th>
+            <th>Produto</th>
+            <th style="width:90px">Categoria</th>
+            <th style="width:80px">Vendas 30d</th>
+            <th style="width:100px">Receita Est.</th>
+            <th style="width:80px">% Receita</th>
+            <th style="width:80px">% Acum.</th>
+          </tr></thead>
+          <tbody id="abcBody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- PREVISÃO DE RUPTURA -->
+    <div class="page" id="page-ruptura">
+      <div class="page-title">Previsão de Ruptura</div>
+      <div class="page-sub">Produtos com risco de zerar o estoque antes da reposição</div>
+      <div class="fin-summary" id="rupturaCards" style="margin-bottom:1.5rem"></div>
+      <div style="display:flex;align-items:center;gap:12px;margin-bottom:1rem;flex-wrap:wrap">
+        <select id="rup-cat" onchange="renderRuptura()" style="padding:8px 11px;border:1px solid var(--border-md);border-radius:var(--radius);background:var(--bg-primary);color:var(--text-primary);font-size:13px;font-family:inherit">
+          <option value="">Todas as categorias</option>
+        </select>
+        <select id="rup-filter" onchange="renderRuptura()" style="padding:8px 11px;border:1px solid var(--border-md);border-radius:var(--radius);background:var(--bg-primary);color:var(--text-primary);font-size:13px;font-family:inherit">
+          <option value="todos">Todos em risco</option>
+          <option value="zerado">Zerados agora</option>
+          <option value="critico">Crítico (até 7 dias)</option>
+          <option value="atencao">Atenção (até 15 dias)</option>
+        </select>
+        <button class="btn" onclick="exportRupturaCSV()" style="margin-left:auto"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" style="width:14px;height:14px"><path d="M2 11v2a1 1 0 001 1h10a1 1 0 001-1v-2M8 2v8M5 7l3 3 3-3"/></svg> Exportar CSV</button>
+      </div>
+      <div class="table-wrap">
+        <table class="table" id="rupturaTable">
+          <thead><tr>
+            <th style="width:60px">Status</th>
+            <th style="width:100px">SKU</th>
+            <th>Produto</th>
+            <th style="width:90px">Categoria</th>
+            <th style="width:70px">Estoque</th>
+            <th style="width:80px">Venda/dia</th>
+            <th style="width:90px">Dias restantes</th>
+            <th style="width:90px">Ruptura em</th>
+            <th style="width:80px">Comprar</th>
+          </tr></thead>
+          <tbody id="rupturaBody"></tbody>
+        </table>
+      </div>
+    </div>
+
     <!-- ENVIAR PLANILHAS -->
     <div class="page" id="page-planilhas">
       <div class="page-title">Enviar Planilhas</div>
@@ -994,6 +1062,8 @@ function showPage(name,el){
   if(name==='estoque')populateUpdateSelect();
   if(name==='financeiro'){populateFinCats();renderFinSummary();renderFinTable();}
   if(name==='compras'){populateNcCats();renderCompras();}
+  if(name==='abc'){populateAbcCats();renderABC();}
+  if(name==='ruptura'){populateRupturaCats();renderRuptura();}
   if(name==='config'){
     document.getElementById('cfg-crit').value=cfg.crit;
     document.getElementById('cfg-warn').value=cfg.warn;
@@ -1347,6 +1417,158 @@ function confirmUpload(){
   showToast('Importação concluída! '+added+' produto(s) adicionado(s).');
 }
 function parseCSV(text){return text.split(/\r?\n/).filter(l=>l.trim()).map(line=>{const cells=[];let inQ=false,cur='';for(let i=0;i<line.length;i++){if(line[i]==='"'){if(inQ&&line[i+1]==='"'){cur+='"';i++;}else inQ=!inQ;}else if(line[i]===','&&!inQ){cells.push(cur.trim());cur='';}else cur+=line[i];}cells.push(cur.trim());return cells;});}
+
+/* ===== CURVA ABC ===== */
+function populateAbcCats(){
+  const cats=[...new Set(products.map(p=>p.cat).filter(Boolean))].sort();
+  const sel=document.getElementById('abc-cat'),cur=sel.value;
+  sel.innerHTML='<option value="">Todas as categorias</option>'+cats.map(c=>'<option value="'+c+'"'+(c===cur?' selected':'')+'>'+c+'</option>').join('');
+}
+function renderABC(){
+  const cat=document.getElementById('abc-cat').value;
+  const sortBy=document.getElementById('abc-sort').value;
+  let data=products.filter(p=>p.sales>0&&(!cat||p.cat===cat));
+  data=data.map(p=>({...p,receita:(p.sales||0)*(p.price||0)}));
+  if(sortBy==='receita')data.sort((a,b)=>b.receita-a.receita);
+  else if(sortBy==='vendas')data.sort((a,b)=>b.sales-a.sales);
+  else data.sort((a,b)=>a.name.localeCompare(b.name));
+  const total=data.reduce((s,p)=>s+p.receita,0);
+  let acum=0;
+  data=data.map(p=>{acum+=p.receita;const pct=total?acum/total*100:0;return{...p,pctReceita:total?p.receita/total*100:0,pctAcum:pct,classe:pct<=80?'A':pct<=95?'B':'C'};});
+  // cards
+  const cA=data.filter(p=>p.classe==='A'),cB=data.filter(p=>p.classe==='B'),cC=data.filter(p=>p.classe==='C');
+  document.getElementById('abcCards').innerHTML=`
+    <div class="ml-sync-card" style="border-left:4px solid #27ae60">
+      <div class="ml-sync-card-icon">🏆</div>
+      <div class="ml-sync-card-val" style="color:#27ae60">${cA.length}</div>
+      <div class="ml-sync-card-lbl">Classe A — 80% receita</div>
+    </div>
+    <div class="ml-sync-card" style="border-left:4px solid #f39c12">
+      <div class="ml-sync-card-icon">📦</div>
+      <div class="ml-sync-card-val" style="color:#f39c12">${cB.length}</div>
+      <div class="ml-sync-card-lbl">Classe B — 15% receita</div>
+    </div>
+    <div class="ml-sync-card" style="border-left:4px solid #95a5a6">
+      <div class="ml-sync-card-icon">📉</div>
+      <div class="ml-sync-card-val" style="color:#95a5a6">${cC.length}</div>
+      <div class="ml-sync-card-lbl">Classe C — 5% receita</div>
+    </div>
+    <div class="ml-sync-card">
+      <div class="ml-sync-card-icon">💰</div>
+      <div class="ml-sync-card-val">R$ ${total.toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2})}</div>
+      <div class="ml-sync-card-lbl">Receita total estimada</div>
+    </div>`;
+  const cor={A:'#27ae60',B:'#f39c12',C:'#95a5a6'};
+  const bg={A:'rgba(39,174,96,.12)',B:'rgba(243,156,18,.12)',C:'rgba(149,165,166,.12)'};
+  document.getElementById('abcBody').innerHTML=data.map(p=>`<tr>
+    <td><span class="badge" style="background:${bg[p.classe]};color:${cor[p.classe]};border:1px solid ${cor[p.classe]};font-weight:700;padding:2px 10px;border-radius:12px">${p.classe}</span></td>
+    <td><span class="sku-chip">${p.sku}</span></td>
+    <td style="max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${p.name}">${p.name}</td>
+    <td>${p.cat}</td>
+    <td style="text-align:center">${p.sales}</td>
+    <td>R$ ${p.receita.toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2})}</td>
+    <td style="text-align:center">${p.pctReceita.toFixed(1)}%</td>
+    <td style="text-align:center">${p.pctAcum.toFixed(1)}%</td>
+  </tr>`).join('');
+}
+function exportAbcCSV(){
+  const cat=document.getElementById('abc-cat').value;
+  let data=products.filter(p=>p.sales>0&&(!cat||p.cat===cat));
+  data=data.map(p=>({...p,receita:(p.sales||0)*(p.price||0)})).sort((a,b)=>b.receita-a.receita);
+  const total=data.reduce((s,p)=>s+p.receita,0);let acum=0;
+  data=data.map(p=>{acum+=p.receita;const pct=total?acum/total*100:0;return{...p,pctReceita:total?p.receita/total*100:0,pctAcum:pct,classe:pct<=80?'A':pct<=95?'B':'C'};});
+  const rows=[['Classe','SKU','Nome','Categoria','Vendas30d','Receita_Est','Pct_Receita','Pct_Acumulado']];
+  data.forEach(p=>rows.push([p.classe,p.sku,p.name,p.cat,p.sales,p.receita.toFixed(2),p.pctReceita.toFixed(1)+'%',p.pctAcum.toFixed(1)+'%']));
+  const csv=rows.map(r=>r.map(v=>'"'+String(v).replace(/"/g,'""')+'"').join(',')).join('\n');
+  const a=document.createElement('a');a.href='data:text/csv;charset=utf-8,\uFEFF'+encodeURIComponent(csv);a.download='curva_abc.csv';a.click();
+}
+
+/* ===== PREVISÃO DE RUPTURA ===== */
+function populateRupturaCats(){
+  const cats=[...new Set(products.map(p=>p.cat).filter(Boolean))].sort();
+  const sel=document.getElementById('rup-cat'),cur=sel.value;
+  sel.innerHTML='<option value="">Todas as categorias</option>'+cats.map(c=>'<option value="'+c+'"'+(c===cur?' selected':'')+'>'+c+'</option>').join('');
+}
+function renderRuptura(){
+  const cat=document.getElementById('rup-cat').value;
+  const filter=document.getElementById('rup-filter').value;
+  const hoje=new Date();
+  let data=products.map(p=>{
+    const mediaDia=p.sales>0?p.sales/30:0;
+    const diasRestantes=mediaDia>0?Math.floor(p.stock/mediaDia):(p.stock>0?999:0);
+    const dataRuptura=mediaDia>0?new Date(hoje.getTime()+diasRestantes*86400000):null;
+    const qtdComprar=calcCompra(p,cfg.target).qtdComprar;
+    let status='ok';
+    if(p.stock===0)status='zerado';
+    else if(diasRestantes<=7)status='critico';
+    else if(diasRestantes<=15)status='atencao';
+    return{...p,mediaDia,diasRestantes,dataRuptura,qtdComprar,status};
+  }).filter(p=>p.status!=='ok'&&(!cat||p.cat===cat));
+  if(filter==='zerado')data=data.filter(p=>p.status==='zerado');
+  else if(filter==='critico')data=data.filter(p=>p.status==='zerado'||p.status==='critico');
+  else if(filter==='atencao')data=data.filter(p=>p.status==='atencao');
+  data.sort((a,b)=>a.diasRestantes-b.diasRestantes);
+  // cards
+  const nZero=data.filter(p=>p.status==='zerado').length;
+  const nCrit=data.filter(p=>p.status==='critico').length;
+  const nAten=data.filter(p=>p.status==='atencao').length;
+  document.getElementById('rupturaCards').innerHTML=`
+    <div class="ml-sync-card" style="border-left:4px solid #E24B4A">
+      <div class="ml-sync-card-icon">🚨</div>
+      <div class="ml-sync-card-val" style="color:#E24B4A">${nZero}</div>
+      <div class="ml-sync-card-lbl">Zerados agora</div>
+    </div>
+    <div class="ml-sync-card" style="border-left:4px solid #c0392b">
+      <div class="ml-sync-card-icon">⚠️</div>
+      <div class="ml-sync-card-val" style="color:#c0392b">${nCrit}</div>
+      <div class="ml-sync-card-lbl">Crítico (até 7 dias)</div>
+    </div>
+    <div class="ml-sync-card" style="border-left:4px solid #EF9F27">
+      <div class="ml-sync-card-icon">🕐</div>
+      <div class="ml-sync-card-val" style="color:#EF9F27">${nAten}</div>
+      <div class="ml-sync-card-lbl">Atenção (até 15 dias)</div>
+    </div>
+    <div class="ml-sync-card">
+      <div class="ml-sync-card-icon">📦</div>
+      <div class="ml-sync-card-val">${nZero+nCrit+nAten}</div>
+      <div class="ml-sync-card-lbl">Total em risco</div>
+    </div>`;
+  const stLabel={zerado:'Zerado',critico:'Crítico',atencao:'Atenção'};
+  const stColor={zerado:'#E24B4A',critico:'#c0392b',atencao:'#EF9F27'};
+  const stBg={zerado:'rgba(226,75,74,.12)',critico:'rgba(192,57,43,.12)',atencao:'rgba(239,159,39,.12)'};
+  document.getElementById('rupturaBody').innerHTML=data.length===0
+    ?'<tr><td colspan="9" style="text-align:center;padding:2rem;color:var(--text-secondary)">✅ Nenhum produto em risco de ruptura no momento.</td></tr>'
+    :data.map(p=>`<tr>
+      <td><span class="badge" style="background:${stBg[p.status]};color:${stColor[p.status]};border:1px solid ${stColor[p.status]};font-weight:700;padding:2px 8px;border-radius:12px">${stLabel[p.status]}</span></td>
+      <td><span class="sku-chip">${p.sku}</span></td>
+      <td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${p.name}">${p.name}</td>
+      <td>${p.cat}</td>
+      <td style="text-align:center;font-weight:600;color:${p.stock===0?'#E24B4A':'inherit'}">${p.stock}</td>
+      <td style="text-align:center">${p.mediaDia>0?p.mediaDia.toFixed(2):'—'}</td>
+      <td style="text-align:center;font-weight:600;color:${stColor[p.status]}">${p.diasRestantes===999?'∞':p.diasRestantes+' dias'}</td>
+      <td style="text-align:center">${p.dataRuptura?p.dataRuptura.toLocaleDateString('pt-BR'):'—'}</td>
+      <td style="text-align:center;font-weight:600">${p.qtdComprar>0?p.qtdComprar:'—'}</td>
+    </tr>`).join('');
+}
+function exportRupturaCSV(){
+  const cat=document.getElementById('rup-cat').value;
+  const hoje=new Date();
+  let data=products.map(p=>{
+    const mediaDia=p.sales>0?p.sales/30:0;
+    const diasRestantes=mediaDia>0?Math.floor(p.stock/mediaDia):(p.stock>0?999:0);
+    const dataRuptura=mediaDia>0?new Date(hoje.getTime()+diasRestantes*86400000):null;
+    const qtdComprar=calcCompra(p,cfg.target).qtdComprar;
+    let status='ok';
+    if(p.stock===0)status='zerado';
+    else if(diasRestantes<=7)status='critico';
+    else if(diasRestantes<=15)status='atencao';
+    return{...p,mediaDia,diasRestantes,dataRuptura,qtdComprar,status};
+  }).filter(p=>p.status!=='ok'&&(!cat||p.cat===cat)).sort((a,b)=>a.diasRestantes-b.diasRestantes);
+  const rows=[['Status','SKU','Nome','Categoria','Estoque','Venda_dia','Dias_Restantes','Data_Ruptura','Qtd_Comprar']];
+  data.forEach(p=>rows.push([p.status,p.sku,p.name,p.cat,p.stock,p.mediaDia.toFixed(2),p.diasRestantes===999?'∞':p.diasRestantes,p.dataRuptura?p.dataRuptura.toLocaleDateString('pt-BR'):'—',p.qtdComprar]));
+  const csv=rows.map(r=>r.map(v=>'"'+String(v).replace(/"/g,'""')+'"').join(',')).join('\n');
+  const a=document.createElement('a');a.href='data:text/csv;charset=utf-8,\uFEFF'+encodeURIComponent(csv);a.download='previsao_ruptura.csv';a.click();
+}
 
 /* ===== CONFIG ===== */
 function onLimiarChange(field){
@@ -1719,13 +1941,10 @@ async function mlSync(){
 
     // Monta índice dos produtos ML existentes por mlId+variationId para recuperar campos editados
     var existingMLMap={};
-    var existingByName={}; // fallback: busca por nome quando mlId mudou (ex: troca de anúncio)
     products.forEach(function(p){
       if(p.mlId){
         var key=p.mlId+(p.mlVariationId?'_'+p.mlVariationId:'');
         existingMLMap[key]=p;
-        // índice por nome — só guarda o primeiro encontrado (evita sobrescrever com duplicatas)
-        if(p.name && !existingByName[p.name]) existingByName[p.name]=p;
       }
     });
 
@@ -1795,12 +2014,12 @@ async function mlSync(){
             varSales=Math.round(itemSales/item.variations.length);
           }
 
-          // Preserva edições manuais se o produto já existia (por mlId ou, se mudou, por nome)
+          // Preserva edições manuais se o produto já existia
           var existKey=item.id+'_'+variation.id;
-          var existing=existingMLMap[existKey]||existingByName[productName]||null;
+          var existing=existingMLMap[existKey];
           products.push({
             id:existing?existing.id:nextId++,
-            sku:SKU_MAP[productName]?SKU_MAP[productName]:(existing&&existing.sku?existing.sku:varSku),
+            sku:SKU_MAP[productName]?SKU_MAP[productName]:varSku,
             name:productName,
             cat:existing?existing.cat:'Mercado Livre',
             stock:variation.available_quantity||0,
@@ -1828,12 +2047,12 @@ async function mlSync(){
         // ✅ SKU_MAP tem prioridade máxima — substitui qualquer valor do ML
         if(SKU_MAP[item.title]) sku=SKU_MAP[item.title];
 
-        // Preserva edições manuais se o produto já existia (por mlId ou, se mudou, por nome)
+        // Preserva edições manuais se o produto já existia
         var existKeySingle=item.id;
-        var existingSingle=existingMLMap[existKeySingle]||existingByName[item.title]||null;
+        var existingSingle=existingMLMap[existKeySingle];
         products.push({
           id:existingSingle?existingSingle.id:nextId++,
-          sku:SKU_MAP[item.title]?SKU_MAP[item.title]:(existingSingle&&existingSingle.sku?existingSingle.sku:String(sku)),
+          sku:SKU_MAP[item.title]?SKU_MAP[item.title]:String(sku),
           name:item.title,
           cat:existingSingle?existingSingle.cat:'Mercado Livre',
           stock:item.available_quantity||0,
